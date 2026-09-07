@@ -18,7 +18,7 @@
     "require-dev": {
         "phpstan/phpstan": "^2.2",
         "friendsofphp/php-cs-fixer": "^3.95",
-        "guzzlehttp/guzzle": "^7.9"
+        "guzzlehttp/guzzle": "^7.9 || ^8.0"
     },
     "autoload": {
         "psr-4": {
