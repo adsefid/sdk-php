@@ -48,6 +48,7 @@ final class AdsefidClient
             $streamFactory,
             $config->baseUrl,
             $config->apiKey,
+            $config->userAgent,
         );
 
         $this->sms = new SmsResource($transport);

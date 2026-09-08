@@ -15,7 +15,7 @@ final class SendP2PMessengerResponse
      * that specific receptor failed (`errorCode` set, `messageStatus` null).
      * `statusCode` always holds the raw value so unknown future codes never crash decoding.
      *
-     * @param array<int, array{message_id: ?string, receptor: string, message: string, local_id: ?string, hide: bool, statusCode: int, messageStatus: ?WebServiceMessageStatus, errorCode: ?WebServiceResponseCode, cost: int}> $receptors
+     * @param array<int, array{message_id: ?string, receptor: string, message: string, local_id: ?string, hide: bool, statusCode: int, messageStatus: ?WebServiceMessageStatus, errorCode: ?WebServiceResponseCode, cost: float}> $receptors
      * @param array<int, int> $counts
      */
     public function __construct(
@@ -23,7 +23,7 @@ final class SendP2PMessengerResponse
         public readonly array $receptors,
         public readonly ?\DateTimeImmutable $sendTime,
         public readonly int $totalCount,
-        public readonly int $totalCost,
+        public readonly float $totalCost,
         public readonly array $counts,
         public readonly string $profile,
         public readonly string $messenger,
@@ -56,14 +56,14 @@ final class SendP2PMessengerResponse
                         'statusCode' => $statusCode,
                         'messageStatus' => WebServiceMessageStatus::tryFrom($statusCode),
                         'errorCode' => WebServiceResponseCode::tryFrom($statusCode),
-                        'cost' => (int) $receptor['cost'],
+                        'cost' => (float) $receptor['cost'],
                     ];
                 },
                 (array) $data['receptors'],
             ),
             sendTime: isset($data['send_time']) ? new \DateTimeImmutable((string) $data['send_time']) : null,
             totalCount: (int) $data['total_count'],
-            totalCost: (int) $data['total_cost'],
+            totalCost: (float) $data['total_cost'],
             counts: $counts,
             profile: (string) $data['profile'],
             messenger: (string) $data['messenger'],
