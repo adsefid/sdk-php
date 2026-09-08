@@ -25,6 +25,7 @@ final class Transport
         private readonly StreamFactoryInterface $streamFactory,
         private readonly string $baseUrl,
         private readonly string $apiKey,
+        private readonly string $userAgent,
     ) {
     }
 
@@ -43,6 +44,7 @@ final class Transport
         $request = $this->requestFactory
             ->createRequest('GET', $this->buildUrl($path, $query))
             ->withHeader('X-API-KEY', $this->apiKey)
+            ->withHeader('User-Agent', $this->userAgent)
             ->withHeader('Accept', 'application/json');
 
         return $this->send($request);
@@ -60,6 +62,7 @@ final class Transport
         $request = $this->requestFactory
             ->createRequest('POST', $this->buildUrl($path))
             ->withHeader('X-API-KEY', $this->apiKey)
+            ->withHeader('User-Agent', $this->userAgent)
             ->withHeader('Content-Type', 'application/json')
             ->withHeader('Accept', 'application/json')
             ->withBody($this->streamFactory->createStream($json));
@@ -75,6 +78,7 @@ final class Transport
         $request = $this->requestFactory
             ->createRequest('POST', $this->buildUrl($path))
             ->withHeader('X-API-KEY', $this->apiKey)
+            ->withHeader('User-Agent', $this->userAgent)
             ->withHeader('Content-Type', $contentType)
             ->withHeader('Accept', 'application/json')
             ->withBody($body);

@@ -16,7 +16,7 @@ final class SendP2PSmsResponse
      * that specific receptor failed (`errorCode` set, `messageStatus` null).
      * `statusCode` always holds the raw value so unknown future codes never crash decoding.
      *
-     * @param array<int, array{message_id: ?string, receptor: string, statusCode: int, messageStatus: ?WebServiceMessageStatus, errorCode: ?WebServiceResponseCode, local_id: ?string, message: string, hide: bool, segment_count: int, cost: int}> $messages
+     * @param array<int, array{message_id: ?string, receptor: string, statusCode: int, messageStatus: ?WebServiceMessageStatus, errorCode: ?WebServiceResponseCode, local_id: ?string, message: string, hide: bool, segment_count: int, cost: float}> $messages
      * @param array<int, int> $counts
      */
     public function __construct(
@@ -25,7 +25,7 @@ final class SendP2PSmsResponse
         public readonly ?\DateTimeImmutable $sendTime,
         public readonly string $lineNumber,
         public readonly ?LineSelector $lineSelector,
-        public readonly int $totalCost,
+        public readonly float $totalCost,
         public readonly array $counts,
     ) {
     }
@@ -57,7 +57,7 @@ final class SendP2PSmsResponse
                         'message' => (string) $message['message'],
                         'hide' => (bool) $message['hide'],
                         'segment_count' => (int) $message['segment_count'],
-                        'cost' => (int) $message['cost'],
+                        'cost' => (float) $message['cost'],
                     ];
                 },
                 (array) $data['messages'],
@@ -65,7 +65,7 @@ final class SendP2PSmsResponse
             sendTime: isset($data['send_time']) ? new \DateTimeImmutable((string) $data['send_time']) : null,
             lineNumber: (string) $data['line_number'],
             lineSelector: isset($data['line_selector']) ? LineSelector::from((int) $data['line_selector']) : null,
-            totalCost: (int) $data['total_cost'],
+            totalCost: (float) $data['total_cost'],
             counts: $counts,
         );
     }

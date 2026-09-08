@@ -44,7 +44,7 @@ try {
     ));
 
     printf(
-        "Queued message %s (group %s), status=%s, cost=%d\n",
+        "Queued message %s (group %s), status=%s, cost=%g\n",
         $response->messageId,
         $response->groupId,
         $response->status->name,
@@ -75,6 +75,7 @@ use Adsefid\Sdk\ClientConfig;
 $config = new ClientConfig(
     apiKey: getenv('ADSEFID_API_KEY'),
     baseUrl: 'https://staging.api.adsefid.com',
+    userAgent: 'my-service/1.0.0', // defaults to adsefid-php/<SDK_VERSION>
 );
 
 // Full dependency injection — pass your own PSR-18 client and PSR-17 factories
@@ -89,6 +90,8 @@ $client = new AdsefidClient(
 // Or let discovery find whatever PSR-18 client/factories you have installed:
 $client = new AdsefidClient($config);
 ```
+
+Monetary response properties (`cost`, `totalCost`, and `creditLeft`) use `float` and may contain fractional values.
 
 ## Resource reference
 
@@ -262,8 +265,8 @@ This SDK follows [Semantic Versioning](https://semver.org/). Its version number 
 and does not track, the adsefid.com Web Service API documentation's own version — the two are
 different things that happen to both look like version numbers.
 
-- **This SDK is currently at version `0.1.0`.** Package versions are set entirely by git tags on
-  this repository (nothing is hardcoded in `composer.json`); the next tag to be pushed is `v0.1.0`.
+- **This SDK is currently at version `0.2.0`.** Package versions are set entirely by git tags on
+  this repository; nothing is hardcoded in `composer.json`.
 - It is built against, and verified compatible with, adsefid.com Web Service API doc version
   **`v1.11.0`**. That pin is a compatibility statement, not this SDK's own version.
 - This SDK's version bumps under normal semver rules, driven by changes to *this SDK*: a patch for

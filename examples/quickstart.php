@@ -32,7 +32,7 @@ try {
     ));
 
     printf(
-        "Message sent: group_id=%s message_id=%s status=%s cost=%d segments=%d\n",
+        "Message sent: group_id=%s message_id=%s status=%s cost=%g segments=%d\n",
         $response->groupId,
         $response->messageId,
         $response->status->name,

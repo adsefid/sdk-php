@@ -16,7 +16,7 @@ final class SendBulkSmsResponse
      * that specific receptor failed (`errorCode` set, `messageStatus` null).
      * `statusCode` always holds the raw value so unknown future codes never crash decoding.
      *
-     * @param array<int, array{message_id: ?string, receptor: string, local_id: ?string, statusCode: int, messageStatus: ?WebServiceMessageStatus, errorCode: ?WebServiceResponseCode, hide: bool, cost: int}> $receptors
+     * @param array<int, array{message_id: ?string, receptor: string, local_id: ?string, statusCode: int, messageStatus: ?WebServiceMessageStatus, errorCode: ?WebServiceResponseCode, hide: bool, cost: float}> $receptors
      * @param array<int, int> $counts
      */
     public function __construct(
@@ -29,7 +29,7 @@ final class SendBulkSmsResponse
         public readonly ?LineSelector $lineSelector,
         public readonly array $counts,
         public readonly int $totalCount,
-        public readonly int $totalCost,
+        public readonly float $totalCost,
     ) {
     }
 
@@ -58,7 +58,7 @@ final class SendBulkSmsResponse
                         'messageStatus' => WebServiceMessageStatus::tryFrom($statusCode),
                         'errorCode' => WebServiceResponseCode::tryFrom($statusCode),
                         'hide' => (bool) $receptor['hide'],
-                        'cost' => (int) $receptor['cost'],
+                        'cost' => (float) $receptor['cost'],
                     ];
                 },
                 (array) $data['receptors'],
@@ -70,7 +70,7 @@ final class SendBulkSmsResponse
             lineSelector: isset($data['line_selector']) ? LineSelector::from((int) $data['line_selector']) : null,
             counts: $counts,
             totalCount: (int) $data['total_count'],
-            totalCost: (int) $data['total_cost'],
+            totalCost: (float) $data['total_cost'],
         );
     }
 

@@ -9,7 +9,7 @@ final class UserInfo
     public function __construct(
         public readonly string $name,
         public readonly string $companyName,
-        public readonly int $creditLeft,
+        public readonly float $creditLeft,
         public readonly string $email,
         public readonly string $phone,
         public readonly string $accountStatus,
@@ -24,7 +24,7 @@ final class UserInfo
         return new self(
             name: (string) $data['name'],
             companyName: (string) $data['company_name'],
-            creditLeft: (int) $data['credit_left'],
+            creditLeft: (float) $data['credit_left'],
             email: (string) $data['email'],
             phone: (string) $data['phone'],
             accountStatus: (string) $data['account_status'],
