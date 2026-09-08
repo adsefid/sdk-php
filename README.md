@@ -347,7 +347,7 @@ different things that happen to both look like version numbers.
 - **This SDK is currently at version `0.3.0`.** Package versions are set entirely by git tags on
   this repository; nothing is hardcoded in `composer.json`.
 - It is built against, and verified compatible with, adsefid.com Web Service API doc version
-  **`v1.11.0`**. That pin is a compatibility statement, not this SDK's own version.
+  **`v1.12.0`**. That pin is a compatibility statement, not this SDK's own version.
 - This SDK's version bumps under normal semver rules, driven by changes to *this SDK*: a patch for
   a bugfix, a minor for a backward-compatible addition (e.g. a new endpoint or field), a major for
   a breaking change to this SDK's own API. The doc-version pin above only changes when someone

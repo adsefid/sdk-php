@@ -6,7 +6,7 @@ This repository is the PHP client SDK for the adsefid.com SMS Web Service API (p
 
 ## Source of truth
 
-The API surface (endpoints, field names, types, validation rules, enums, example payloads, webhook behavior) is defined by the published adsefid.com SMS Web Service API documentation. This SDK is verified against doc version v1.11.0. Re-read the relevant section before changing any endpoint, request/response model, or enum. The SDK follows independent Semantic Versioning from repository tags; never copy the API-document version into a tag. Record both versions in the README.
+The API surface (endpoints, field names, types, validation rules, enums, example payloads, webhook behavior) is defined by the published adsefid.com SMS Web Service API documentation. This SDK is verified against doc version v1.12.0. Re-read the relevant section before changing any endpoint, request/response model, or enum. The SDK follows independent Semantic Versioning from repository tags; never copy the API-document version into a tag. Record both versions in the README.
 
 A small number of facts below are empirically observed behaviors of the live API that are easy to get wrong from a literal reading of the documentation's prose or pseudo-code. Trust these notes over an ambiguous doc reading:
 
