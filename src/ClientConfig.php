@@ -19,6 +19,17 @@ final class ClientConfig
         public readonly string $baseUrl = self::DEFAULT_BASE_URL,
         ?string $userAgent = null,
     ) {
+        // Fail here rather than letting a blank key surface later as a
+        // confusing 401 from the service. The sibling SDKs reject it at
+        // construction too.
+        if (trim($this->apiKey) === '') {
+            throw new AdsefidValidationException('apiKey is required and must be non-blank.', 'apiKey');
+        }
+
+        if (trim($this->baseUrl) === '') {
+            throw new AdsefidValidationException('baseUrl is required and must be non-blank.', 'baseUrl');
+        }
+
         $this->userAgent = $userAgent ?? self::defaultUserAgent();
         if (trim($this->userAgent) === '' || str_contains($this->userAgent, "\r") || str_contains($this->userAgent, "\n")) {
             throw new AdsefidValidationException(

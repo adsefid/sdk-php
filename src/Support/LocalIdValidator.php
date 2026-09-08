@@ -16,9 +16,14 @@ final class LocalIdValidator
     {
     }
 
+    /**
+     * Validates an optional local_id. The platform normalizes a blank value to
+     * "not supplied" before validating, so null, empty and whitespace-only are
+     * all accepted and simply omitted from the request.
+     */
     public static function validate(?string $localId, string $field = 'local_id'): void
     {
-        if ($localId === null) {
+        if ($localId === null || trim($localId) === '') {
             return;
         }
 
@@ -39,14 +44,27 @@ final class LocalIdValidator
         return $value;
     }
 
+    /**
+     * Length limits are counted in UTF-16 code units, matching the platform. A
+     * character outside the Basic Multilingual Plane (an emoji, say) is one
+     * code point but two UTF-16 code units, so `mb_strlen` would accept a
+     * message the platform rejects.
+     */
     public static function maxLength(string $value, int $max, string $field): void
     {
-        if (mb_strlen($value) > $max) {
+        if (self::utf16Length($value) > $max) {
             throw new AdsefidValidationException(
                 sprintf('"%s" must not exceed %d characters.', $field, $max),
                 $field,
             );
         }
+    }
+
+    public static function utf16Length(string $value): int
+    {
+        $utf16 = mb_convert_encoding($value, 'UTF-16LE', 'UTF-8');
+
+        return intdiv(strlen($utf16), 2);
     }
 
     /**

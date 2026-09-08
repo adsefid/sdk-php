@@ -6,11 +6,12 @@ namespace Adsefid\Sdk\Models\Messenger;
 
 use Adsefid\Sdk\Exceptions\AdsefidValidationException;
 use Adsefid\Sdk\Support\LocalIdValidator;
+use Adsefid\Sdk\Support\TemplateParameters;
 
 final class SendTemplateMessengerRequest
 {
     /**
-     * @param array<string, string|int|float> $parameters
+     * @param array<string, string|int|float> $parameters A number-typed parameter may be sent as a numeric string to keep its exact digits (see `TemplateParameters`).
      *
      * @throws AdsefidValidationException if `templateId`, `receptor`, or `profile` is empty, or `localId` doesn't match the required pattern.
      */
@@ -26,6 +27,7 @@ final class SendTemplateMessengerRequest
         LocalIdValidator::requireNonEmpty($this->receptor, 'receptor');
         LocalIdValidator::requireNonEmpty($this->profile, 'profile');
         LocalIdValidator::validate($this->localId, 'local_id');
+        TemplateParameters::validate($this->parameters);
     }
 
     /**

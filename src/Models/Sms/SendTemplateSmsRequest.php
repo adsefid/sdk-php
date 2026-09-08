@@ -7,11 +7,12 @@ namespace Adsefid\Sdk\Models\Sms;
 use Adsefid\Sdk\Enums\LineSelector;
 use Adsefid\Sdk\Exceptions\AdsefidValidationException;
 use Adsefid\Sdk\Support\LocalIdValidator;
+use Adsefid\Sdk\Support\TemplateParameters;
 
 final class SendTemplateSmsRequest
 {
     /**
-     * @param array<string, string|int|float> $parameters
+     * @param array<string, string|int|float> $parameters A number-typed parameter may be sent as a numeric string to keep its exact digits (see `TemplateParameters`).
      *
      * @throws AdsefidValidationException if `templateId`, `receptor`, or `lineNumber` is empty, or `localId` doesn't match the required pattern.
      */
@@ -28,6 +29,7 @@ final class SendTemplateSmsRequest
         LocalIdValidator::requireNonEmpty($this->receptor, 'receptor');
         LocalIdValidator::requireNonEmpty($this->lineNumber, 'line_number');
         LocalIdValidator::validate($this->localId, 'local_id');
+        TemplateParameters::validate($this->parameters);
     }
 
     /**
