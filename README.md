@@ -145,6 +145,18 @@ try {
 }
 ```
 
+`details` is not one shape — the service picks one per endpoint:
+
+| When | Shape | Example |
+|---|---|---|
+| Request validation (`2024 INVALID_PARAMETER`) | `{"errors": {field: message}}` — snake_case field paths, **string** values | `{"errors":{"take":"invalid value for take"}}` |
+| Single send | `{field: message}` — flat, no wrapper | `{"receptor":"invalid value for receptor"}` |
+| Bulk / P2P | `{"errors": {...}, "messages": [{"index": n, "errors": {...}}]}` — `index` is the position in *your* array, so gaps are normal | `{"errors":{},"messages":[{"index":2,"errors":{"local_id":"invalid value for local_id"}}]}` |
+| Cancel | `{field: [value, ...]}` — the one shape whose values are **arrays** | `{"local_ids":["order-10001"]}` |
+| Anything else | absent or `null` | |
+
+Decode it defensively for the endpoint you called rather than assuming a single shape.
+
 ### Partial success in bulk/P2P sends
 
 `SendBulkSmsResponse`, `SendP2PSmsResponse`, `SendBulkMessengerResponse`, and `SendP2PMessengerResponse` never throw for individual failed recipients. Each item's `statusCode` is the server's raw `WebServiceCode` (doc §3.3): a value in `1000-1999` means it was accepted and `messageStatus` is set (`errorCode` is `null`); a value `2000+` means that one recipient failed and `errorCode` is set instead (`messageStatus` is `null`). This mirrors the doc's own bulk example, where one receptor gets `status: 1000` and another gets `status: 2025` (`RECEPTOR_BLACKLISTED`) in the same successful response.
@@ -161,9 +173,34 @@ Codes `2035` (`MESSAGE_LIMIT_REACHED`) and `2036` (`REQUEST_LIMIT_REACHED`), and
 | `Adsefid\Sdk\Enums\WebServiceMessageStatus` | `int` | 18 values, `1000`-`1999` (`SCHEDULED`, `SENDING`, `DELIVERED`, ... `UNKNOWN`) — see doc §3.2 |
 | `Adsefid\Sdk\Enums\WebServiceResponseCode` | `int` | 46 values, `2000`-`2045` (`INTERNAL_ERROR`, `INVALID_PLAN`, ... `REJECTED`) — see doc §3.4; has an `httpStatus()` helper method |
 | `Adsefid\Sdk\Enums\TemplateState` | `string` | `PendingApproval` (`pendingapproval`), `Approved` (`approved`), `Rejected` (`rejected`) |
-| `Adsefid\Sdk\Enums\TemplateParameterType` | `string` | `String` (`string`), `Number` (`number`) |
+| `Adsefid\Sdk\Enums\TemplateParameterType` | `string` | `String` (`string`), `Number` (`number`) — the documented complete public set. The live service also emits an undocumented third value; such a parameter is dropped from `UserTemplateItem::$parameters` rather than surfaced as a case that does not exist. |
 
 `WebServiceResponseCode` on `AdsefidApiException` is nullable (`?WebServiceResponseCode $responseCode` alongside `int $rawCode`): PHP's native backed enums throw on an unrecognized value, so the SDK uses `tryFrom()` and keeps the raw int around, ensuring a response code this SDK version doesn't recognize yet never crashes your app.
+
+## Template parameters, leading zeros and decimals
+
+A template parameter value is `string|int|float`, and the request DTOs validate that at
+construction. A parameter the template declares as `number` may be sent **either** as a JSON number
+or as a JSON string, and the service substitutes a numeric string verbatim — so a string is the
+only way to keep a value's exact digits:
+
+```php
+$client->sms->sendTemplate(new SendTemplateSmsRequest(
+    templateId: 'invoice_notice',
+    parameters: [
+        'invoice' => '001234',  // renders as 001234 — the int 1234 would lose the zeros
+        'amount'  => '1.50',    // renders as 1.50   — the float 1.5 would lose the zero
+        'count'   => 2,         // an ordinary integer
+        'rate'    => 19.99,     // a float, where rounding is acceptable
+    ],
+    receptor: '09120000000',
+    lineNumber: '3000xxxx',
+));
+```
+
+Reach for a string whenever the rendered text must match the digits you supplied — invoice and
+account numbers, zero-padded codes, and money amounts with a fixed number of decimal places. See
+[`examples/templates.php`](examples/templates.php) for a runnable version.
 
 ## File upload example
 
@@ -259,13 +296,55 @@ You configure, per webhook endpoint, which event types it receives (in your adse
 an endpoint subscribed only to `RECEIVE` will never see a `StatusWebhookEvent`, so don't assume
 every deployment gets all three; handle whichever ones you've subscribed to.
 
+### The signing secret is Base64
+
+Your endpoint's signing secret is shown in the adsefid.com panel as the Base64 encoding of 32
+random bytes, and the platform signs with **those raw bytes** — not with the text of the Base64
+string. Pass the secret exactly as the panel shows it to `new WebhookVerifier($secret)` and it is
+decoded for you; a secret that is not valid Base64 throws `AdsefidWebhookVerificationException` at
+construction. If you already hold the decoded key, use `WebhookVerifier::fromKey($key)` instead.
+
+## Development
+
+```bash
+make deps    # composer install
+make fmt     # php-cs-fixer fix
+make lint    # phpstan analyse + php-cs-fixer --dry-run
+make build   # php -l over src
+make test    # phpunit
+```
+
+Golden fixtures under `tests/fixtures/` are byte-identical to the same tree in the sibling SDK
+repositories, and `tests/FixturesIntegrityTest.php` verifies them against `CHECKSUMS.txt`.
+
+### Examples
+
+Runnable samples live in [`examples/`](examples) (excluded from the distributed archive via
+`.gitattributes`):
+
+```bash
+export ADSEFID_API_KEY=...
+export ADSEFID_LINE_NUMBER=3000xxxx
+
+php examples/account.php            # account info, lines, profiles, templates; client config
+php examples/quickstart.php         # send one SMS, with full error triage
+php examples/bulk-and-p2p.php       # bulk + P2P sends, and reading a partial success
+php examples/templates.php          # list templates and send one, incl. exact numeric values
+php examples/status-and-cancel.php  # delivery status, cancelling, inbound messages
+php examples/messenger.php          # upload an attachment and send it via a messenger profile
+
+ADSEFID_WEBHOOK_SECRET=... php -S localhost:8080 examples/webhook-server.php
+```
+
+`examples/account.php` sends nothing, so it is the safest one to try first.
+
 ## Versioning
 
 This SDK follows [Semantic Versioning](https://semver.org/). Its version number is independent of,
 and does not track, the adsefid.com Web Service API documentation's own version — the two are
 different things that happen to both look like version numbers.
 
-- **This SDK is currently at version `0.2.0`.** Package versions are set entirely by git tags on
+- **This SDK is currently at version `0.3.0`.** Package versions are set entirely by git tags on
   this repository; nothing is hardcoded in `composer.json`.
 - It is built against, and verified compatible with, adsefid.com Web Service API doc version
   **`v1.11.0`**. That pin is a compatibility statement, not this SDK's own version.
@@ -277,4 +356,4 @@ different things that happen to both look like version numbers.
 
 ## License
 
-Proprietary — All rights reserved.
+MIT — see [LICENSE](LICENSE).

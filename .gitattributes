@@ -8,3 +8,6 @@
 /CLAUDE.md export-ignore
 /.github export-ignore
 /.gitattributes export-ignore
+/tests export-ignore
+/phpunit.xml.dist export-ignore
+tests/fixtures/** -text

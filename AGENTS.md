@@ -48,6 +48,31 @@ src/
 
 ## Hard rules
 
+- **Every change ships with tests.** `tests/` runs on PHPUnit (`make test`), namespaced
+  `Adsefid\Sdk\Tests\` via `autoload-dev`. Prefer one `#[DataProvider]` table over many
+  near-identical methods. Validation lives in the request DTO constructors, so a validation test
+  builds the DTO and expects the exception — no HTTP client is involved.
+- **Golden fixtures are shared across all five SDKs.** `tests/fixtures/` is byte-identical to the
+  same tree in the sibling repositories. Never edit one in isolation: change it in all five and
+  regenerate every `CHECKSUMS.txt`, or `FixturesIntegrityTest` fails.
+- **PHPStan covers `tests/` too, at level 8.** It rejects an assertion it can prove tautological
+  (`assertTrue(true)`, `is_subclass_of` on two literal class strings). Write a behavioural
+  assertion instead, or `expectNotToPerformAssertions()` when a test's whole point is that nothing
+  throws.
+- **Template parameter values.** `Support\TemplateParameters::validate()` enforces the
+  `string|int|float` shape at construction, and carries the `@phpstan-type` aliases. A `number`
+  parameter may legitimately travel as a JSON *string* — that is how leading zeros (`'001234'`) and
+  exact decimals (`'1.50'`) reach the service intact, since it substitutes a numeric string
+  verbatim.
+- **The webhook secret is Base64.** A webhook endpoint's secret is 32 random bytes shown
+  Base64-encoded in the panel, and the service signs with the **decoded** bytes.
+  `WebhookVerifier::__construct` decodes it; `WebhookVerifier::fromKey()` takes raw key bytes.
+  Keying the HMAC with the UTF-8 bytes of the Base64 string does not verify against the live
+  service.
+- **Length limits count UTF-16 code units.** `LocalIdValidator::maxLength` uses
+  `LocalIdValidator::utf16Length`, not `mb_strlen`, because that is what the service counts: a
+  non-BMP character (an emoji) is one code point but two UTF-16 code units.
+
 - **No tests, ever.** Do not add a `tests/` directory, do not add PHPUnit (or any test framework) as a dependency, not even as an empty stub. This is a deliberate project decision, not an oversight.
 - **No reflection-based serialization.** Every DTO hand-writes its own `toArray()`/`fromArray()`. Do not introduce a mapper library, do not use PHP attributes for (de)serialization, do not use `ReflectionClass` to auto-map properties.
 - **No magic string/int literals.** A field's set of valid values belongs in one of the 5 enums, or in a named `private const` on the relevant class (see `LocalIdValidator::LOCAL_ID_PATTERN`, `SendSingleSmsRequest::MESSAGE_MAX_LENGTH`). Do not inline `900`, `4000`, `2000`, `500`, `100`, etc. a second time — reference or duplicate the named constant, don't retype the raw number.
@@ -64,6 +89,7 @@ composer validate     # sanity-check composer.json
 composer run lint     # PHPStan static analysis (see level note below)
 composer run fmt      # PHP-CS-Fixer, auto-fix style violations
 composer run fmt:check # PHP-CS-Fixer, dry-run/diff only
+composer run test     # PHPUnit
 php -l src/Path/To/File.php   # syntax-check a single file
 find src -name '*.php' -print0 | xargs -0 -n1 php -l   # syntax-check everything
 ```

@@ -14,12 +14,38 @@ final class WebhookVerifier
 {
     private const SIGNATURE_PREFIX = 'v1=';
 
+    /** The raw HMAC key: the decoded form of the panel's Base64 secret. */
+    private readonly string $key;
+
     /**
-     * @param string $secret The webhook signing secret configured in your adsefid.com panel.
+     * @param string $secret The webhook signing secret exactly as shown in your adsefid.com panel.
+     *                       That is the Base64 encoding of 32 random bytes, and the platform signs
+     *                       with the decoded bytes, so it is decoded here before it is used as an
+     *                       HMAC key. To supply an already-decoded key, use `fromKey()`.
+     *
+     * @throws AdsefidWebhookVerificationException if $secret is not valid Base64.
      */
-    public function __construct(
-        private readonly string $secret,
-    ) {
+    public function __construct(string $secret)
+    {
+        $decoded = base64_decode(trim($secret), true);
+        if ($decoded === false || $decoded === '') {
+            throw new AdsefidWebhookVerificationException(
+                'Webhook secret is not valid Base64; use the secret exactly as shown in your adsefid.com panel, or construct with fromKey().',
+            );
+        }
+
+        $this->key = $decoded;
+    }
+
+    /**
+     * Builds a verifier from an already-decoded signing key, skipping the
+     * Base64 step. Use this when you store the decoded key yourself.
+     */
+    public static function fromKey(string $key): self
+    {
+        // Round-tripping through the constructor keeps it the single place the
+        // key is ever assigned, which readonly requires anyway.
+        return new self(base64_encode($key));
     }
 
     /**
@@ -37,8 +63,10 @@ final class WebhookVerifier
         int $maxAgeSeconds = 300,
     ): WebhookEvent {
         $timestamp = $this->parseTimestamp($timestampHeader);
-        $this->assertFresh($timestamp, $maxAgeSeconds);
+        // Signature first, then freshness — the sibling SDKs check in this
+        // order, so the same request reports the same failure everywhere.
         $this->assertValidSignature($rawBody, $signatureHeader, $timestamp);
+        $this->assertFresh($timestamp, $maxAgeSeconds);
 
         return $this->parsePayload($rawBody);
     }
@@ -67,7 +95,7 @@ final class WebhookVerifier
 
         $providedSignature = substr($signatureHeader, strlen(self::SIGNATURE_PREFIX));
         $signingInput = sprintf('%d.%s', $timestamp, $rawBody);
-        $expectedSignature = base64_encode(hash_hmac('sha256', $signingInput, $this->secret, true));
+        $expectedSignature = base64_encode(hash_hmac('sha256', $signingInput, $this->key, true));
 
         if (!hash_equals($expectedSignature, $providedSignature)) {
             throw new AdsefidWebhookVerificationException('Webhook signature verification failed.');
