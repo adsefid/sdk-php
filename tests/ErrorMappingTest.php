@@ -9,6 +9,7 @@ use Adsefid\Sdk\Exceptions\AdsefidApiException;
 use Adsefid\Sdk\Exceptions\AdsefidException;
 use Adsefid\Sdk\Exceptions\AdsefidRateLimitException;
 use Adsefid\Sdk\Exceptions\AdsefidTransportException;
+use Adsefid\Sdk\Models\User\GetUserTemplatesRequest;
 use Adsefid\Sdk\Tests\Support\Fixtures;
 use Adsefid\Sdk\Tests\Support\TestClient;
 use GuzzleHttp\Exception\ConnectException;
@@ -80,21 +81,76 @@ final class ErrorMappingTest extends TestCase
         }
     }
 
-    public function testDetailsSurviveIntact(): void
+    /**
+     * The real shape of a validation failure: a field-to-message map under
+     * `errors`, with plain string values.
+     */
+    public function testValidationDetailsSurviveIntact(): void
     {
         [$client] = TestClient::respondingWithFixture('errors/error.invalid_parameter.json', 400);
+
+        try {
+            $client->user->getTemplates(new GetUserTemplatesRequest());
+            self::fail('expected an API exception');
+        } catch (AdsefidApiException $exception) {
+            self::assertSame(
+                [
+                    'errors' => [
+                        'take' => 'invalid value for take',
+                        'state' => 'invalid value for state',
+                    ],
+                ],
+                $exception->details,
+            );
+        }
+    }
+
+    /**
+     * @return iterable<string, array{string, array<string, mixed>}>
+     */
+    public static function detailsShapeProvider(): iterable
+    {
+        yield 'single send is a flat field to message map' => [
+            'errors/error.details_single.json',
+            ['receptor' => 'invalid value for receptor'],
+        ];
+
+        yield 'bulk carries per-item errors keyed by index' => [
+            'errors/error.details_bulk.json',
+            [
+                'errors' => ['line_number' => 'invalid value for line_number'],
+                'messages' => [
+                    ['index' => 0, 'errors' => ['receptor' => 'invalid value for receptor']],
+                    ['index' => 2, 'errors' => [
+                        'local_id' => 'invalid value for local_id',
+                        'message' => 'invalid value for message',
+                    ]],
+                ],
+            ],
+        ];
+
+        yield 'cancel is the one shape whose values are arrays' => [
+            'errors/error.details_cancel.json',
+            ['local_ids' => ['order-10001', 'order-10002']],
+        ];
+    }
+
+    /**
+     * `details` is deliberately `mixed` because the service uses a different
+     * shape per endpoint. Each real shape must come through uncoerced.
+     *
+     * @param array<string, mixed> $expected
+     */
+    #[DataProvider('detailsShapeProvider')]
+    public function testEveryDetailsShapeSurvivesUnchanged(string $fixture, array $expected): void
+    {
+        [$client] = TestClient::respondingWithFixture($fixture, 400);
 
         try {
             $client->user->getInfo();
             self::fail('expected an API exception');
         } catch (AdsefidApiException $exception) {
-            self::assertSame(
-                [
-                    'take' => ['must be between 1 and 100'],
-                    'state' => ['must be one of pendingapproval, approved, rejected'],
-                ],
-                $exception->details,
-            );
+            self::assertSame($expected, $exception->details);
         }
     }
 

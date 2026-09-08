@@ -145,6 +145,18 @@ try {
 }
 ```
 
+`details` is not one shape — the service picks one per endpoint:
+
+| When | Shape | Example |
+|---|---|---|
+| Request validation (`2024 INVALID_PARAMETER`) | `{"errors": {field: message}}` — snake_case field paths, **string** values | `{"errors":{"take":"invalid value for take"}}` |
+| Single send | `{field: message}` — flat, no wrapper | `{"receptor":"invalid value for receptor"}` |
+| Bulk / P2P | `{"errors": {...}, "messages": [{"index": n, "errors": {...}}]}` — `index` is the position in *your* array, so gaps are normal | `{"errors":{},"messages":[{"index":2,"errors":{"local_id":"invalid value for local_id"}}]}` |
+| Cancel | `{field: [value, ...]}` — the one shape whose values are **arrays** | `{"local_ids":["order-10001"]}` |
+| Anything else | absent or `null` | |
+
+Decode it defensively for the endpoint you called rather than assuming a single shape.
+
 ### Partial success in bulk/P2P sends
 
 `SendBulkSmsResponse`, `SendP2PSmsResponse`, `SendBulkMessengerResponse`, and `SendP2PMessengerResponse` never throw for individual failed recipients. Each item's `statusCode` is the server's raw `WebServiceCode` (doc §3.3): a value in `1000-1999` means it was accepted and `messageStatus` is set (`errorCode` is `null`); a value `2000+` means that one recipient failed and `errorCode` is set instead (`messageStatus` is `null`). This mirrors the doc's own bulk example, where one receptor gets `status: 1000` and another gets `status: 2025` (`RECEPTOR_BLACKLISTED`) in the same successful response.
