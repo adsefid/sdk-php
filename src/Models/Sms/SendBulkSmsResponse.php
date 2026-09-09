@@ -5,18 +5,11 @@ declare(strict_types=1);
 namespace Adsefid\Sdk\Models\Sms;
 
 use Adsefid\Sdk\Enums\LineSelector;
-use Adsefid\Sdk\Enums\WebServiceMessageStatus;
-use Adsefid\Sdk\Enums\WebServiceResponseCode;
 
 final class SendBulkSmsResponse
 {
     /**
-     * Per-item `status` is a `WebServiceCode` (doc 3.3): 1000-1999 means the
-     * item was accepted (`messageStatus` set, `errorCode` null); 2000+ means
-     * that specific receptor failed (`errorCode` set, `messageStatus` null).
-     * `statusCode` always holds the raw value so unknown future codes never crash decoding.
-     *
-     * @param array<int, array{message_id: ?string, receptor: string, local_id: ?string, statusCode: int, messageStatus: ?WebServiceMessageStatus, errorCode: ?WebServiceResponseCode, hide: bool, cost: float}> $receptors
+     * @param list<BulkSmsReceptorResult> $receptors One entry per requested item, in request order; see BulkSmsReceptorResult for the partial-success semantics.
      * @param array<int, int> $counts
      */
     public function __construct(
@@ -47,21 +40,8 @@ final class SendBulkSmsResponse
         return new self(
             groupId: (string) $data['group_id'],
             receptors: array_map(
-                static function (array $receptor): array {
-                    $statusCode = (int) $receptor['status'];
-
-                    return [
-                        'message_id' => isset($receptor['message_id']) ? (string) $receptor['message_id'] : null,
-                        'receptor' => (string) $receptor['receptor'],
-                        'local_id' => isset($receptor['local_id']) ? (string) $receptor['local_id'] : null,
-                        'statusCode' => $statusCode,
-                        'messageStatus' => WebServiceMessageStatus::tryFrom($statusCode),
-                        'errorCode' => WebServiceResponseCode::tryFrom($statusCode),
-                        'hide' => (bool) $receptor['hide'],
-                        'cost' => (float) $receptor['cost'],
-                    ];
-                },
-                (array) $data['receptors'],
+                static fn (array $item): BulkSmsReceptorResult => BulkSmsReceptorResult::fromArray($item),
+                array_values((array) $data['receptors']),
             ),
             message: (string) $data['message'],
             segmentCount: (int) $data['segment_count'],
@@ -87,17 +67,7 @@ final class SendBulkSmsResponse
 
         return [
             'group_id' => $this->groupId,
-            'receptors' => array_map(
-                static fn (array $receptor): array => [
-                    'message_id' => $receptor['message_id'],
-                    'receptor' => $receptor['receptor'],
-                    'local_id' => $receptor['local_id'],
-                    'status' => $receptor['statusCode'],
-                    'hide' => $receptor['hide'],
-                    'cost' => $receptor['cost'],
-                ],
-                $this->receptors,
-            ),
+            'receptors' => array_map(static fn (BulkSmsReceptorResult $item): array => $item->toArray(), $this->receptors),
             'message' => $this->message,
             'segment_count' => $this->segmentCount,
             'send_time' => $this->sendTime?->format(DATE_ATOM),

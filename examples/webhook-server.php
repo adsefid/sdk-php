@@ -8,7 +8,9 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use Adsefid\Sdk\Exceptions\AdsefidWebhookVerificationException;
 use Adsefid\Sdk\Webhooks\MessengerStatusWebhookEvent;
+use Adsefid\Sdk\Webhooks\ReceivedMessageItem;
 use Adsefid\Sdk\Webhooks\ReceiveWebhookEvent;
+use Adsefid\Sdk\Webhooks\StatusUpdateItem;
 use Adsefid\Sdk\Webhooks\StatusWebhookEvent;
 use Adsefid\Sdk\Webhooks\WebhookHeaders;
 use Adsefid\Sdk\Webhooks\WebhookVerifier;
@@ -41,17 +43,17 @@ $summary = match (true) {
     $event instanceof ReceiveWebhookEvent => sprintf(
         'Received %d inbound message(s) on line(s): %s',
         count($event->data),
-        implode(', ', array_map(static fn (array $item): string => $item['line_number'], $event->data)),
+        implode(', ', array_map(static fn (ReceivedMessageItem $item): string => $item->lineNumber, $event->data)),
     ),
     $event instanceof StatusWebhookEvent => sprintf(
         'Status update for %d message(s): %s',
         count($event->data),
-        implode(', ', array_map(static fn (array $item): string => $item['status_delivery']->name, $event->data)),
+        implode(', ', array_map(static fn (StatusUpdateItem $item): string => $item->statusDelivery?->name ?? (string) $item->statusDeliveryCode, $event->data)),
     ),
     $event instanceof MessengerStatusWebhookEvent => sprintf(
         'Messenger status update for %d message(s): %s',
         count($event->data),
-        implode(', ', array_map(static fn (array $item): string => $item['status_delivery']->name, $event->data)),
+        implode(', ', array_map(static fn (StatusUpdateItem $item): string => $item->statusDelivery?->name ?? (string) $item->statusDeliveryCode, $event->data)),
     ),
     default => sprintf('Unhandled event type "%s"', $event->type),
 };

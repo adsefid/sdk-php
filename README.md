@@ -159,7 +159,25 @@ Decode it defensively for the endpoint you called rather than assuming a single 
 
 ### Partial success in bulk/P2P sends
 
-`SendBulkSmsResponse`, `SendP2PSmsResponse`, `SendBulkMessengerResponse`, and `SendP2PMessengerResponse` never throw for individual failed recipients. Each item's `statusCode` is the server's raw `WebServiceCode` (doc §3.3): a value in `1000-1999` means it was accepted and `messageStatus` is set (`errorCode` is `null`); a value `2000+` means that one recipient failed and `errorCode` is set instead (`messageStatus` is `null`). This mirrors the doc's own bulk example, where one receptor gets `status: 1000` and another gets `status: 2025` (`RECEPTOR_BLACKLISTED`) in the same successful response.
+`SendBulkSmsResponse`, `SendP2PSmsResponse`, `SendBulkMessengerResponse`, and `SendP2PMessengerResponse` never throw for individual failed recipients. Their items are typed value objects (`BulkSmsReceptorResult`, `P2PSmsMessageResult`, `BulkMessengerReceptorResult`, `P2PMessengerReceptorResult`). Each item's `statusCode` is the server's raw `WebServiceCode` (doc §3.3): a value in `1000-1999` means it was accepted and `messageStatus` is set (`errorCode` is `null`); a value `2000+` means that one recipient failed and `errorCode` is set instead (`messageStatus` is `null`). Both are `null` for a code this SDK does not know yet. This mirrors the doc's own bulk example, where one receptor gets `status: 1000` and another gets `status: 2025` (`RECEPTOR_BLACKLISTED`) in the same successful response:
+
+```php
+use Adsefid\Sdk\Models\Sms\BulkSmsReceptor;
+use Adsefid\Sdk\Models\Sms\SendBulkSmsRequest;
+
+$bulk = $client->sms->sendBulk(new SendBulkSmsRequest(
+    receptors: [new BulkSmsReceptor('98912xxxxxxx', localId: 'b-1'), new BulkSmsReceptor('98993xxxxxxx', localId: 'b-2')],
+    message: 'Hello',
+    lineNumber: '3000xxxx',
+));
+foreach ($bulk->receptors as $item) {
+    echo $item->errorCode !== null
+        ? "{$item->receptor}: rejected ({$item->errorCode->name})\n"
+        : "{$item->receptor}: {$item->messageStatus?->name}\n";
+}
+```
+
+Every other status field is parsed the same permissive way: single/template send responses, get-status receptors (`StatusReceptor`), cancel entries (`CancelledMessage`) and webhook status items (`StatusUpdateItem`) expose the raw `statusCode` (or `statusDeliveryCode`) next to a nullable `WebServiceMessageStatus` view, so a status the service adds later never fails the call.
 
 ### Rate limiting
 
@@ -265,14 +283,15 @@ http_response_code(200);
 function processInboundSms(ReceiveWebhookEvent $event): void
 {
     foreach ($event->data as $item) {
-        // $item['line_number'], $item['sender'], $item['message'], $item['receive_date']
+        // ReceivedMessageItem: $item->id, $item->lineNumber, $item->sender, $item->message, $item->receiveDate
     }
 }
 
 function processSmsStatusUpdate(StatusWebhookEvent $event): void
 {
     foreach ($event->data as $item) {
-        // $item['id'], $item['local_id'], $item['status_delivery'], $item['delivery_time']
+        // StatusUpdateItem: $item->id, $item->localId, $item->statusDelivery (null for an unknown code),
+        // $item->statusDeliveryCode (raw), $item->deliveryTime
     }
 }
 

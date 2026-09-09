@@ -6,7 +6,13 @@ namespace Adsefid\Sdk\Models\Sms;
 
 use Adsefid\Sdk\Enums\LineSelector;
 use Adsefid\Sdk\Enums\WebServiceMessageStatus;
+use Adsefid\Sdk\Support\WebServiceCode;
 
+/**
+ * `statusCode` is the raw status; `status` is its typed view and is `null`
+ * for a code this SDK does not know yet, so a new server-side status never
+ * fails the call.
+ */
 final class SendTemplateSmsResponse
 {
     /**
@@ -15,7 +21,8 @@ final class SendTemplateSmsResponse
     public function __construct(
         public readonly string $groupId,
         public readonly string $messageId,
-        public readonly WebServiceMessageStatus $status,
+        public readonly int $statusCode,
+        public readonly ?WebServiceMessageStatus $status,
         public readonly ?string $localId,
         public readonly string $lineNumber,
         public readonly string $templateId,
@@ -38,7 +45,8 @@ final class SendTemplateSmsResponse
         return new self(
             groupId: (string) $data['group_id'],
             messageId: (string) $data['message_id'],
-            status: WebServiceMessageStatus::from((int) $data['status']),
+            statusCode: (int) $data['status'],
+            status: WebServiceCode::messageStatus((int) $data['status']),
             localId: isset($data['local_id']) ? (string) $data['local_id'] : null,
             lineNumber: (string) $data['line_number'],
             templateId: (string) $data['template_id'],
@@ -61,7 +69,7 @@ final class SendTemplateSmsResponse
         return [
             'group_id' => $this->groupId,
             'message_id' => $this->messageId,
-            'status' => $this->status->value,
+            'status' => $this->statusCode,
             'local_id' => $this->localId,
             'line_number' => $this->lineNumber,
             'template_id' => $this->templateId,

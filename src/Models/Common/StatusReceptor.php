@@ -2,30 +2,28 @@
 
 declare(strict_types=1);
 
-namespace Adsefid\Sdk\Models\Messenger;
+namespace Adsefid\Sdk\Models\Common;
 
 use Adsefid\Sdk\Enums\WebServiceMessageStatus;
 use Adsefid\Sdk\Support\WebServiceCode;
 
 /**
- * `statusCode` is the raw status; `status` is its typed view and is `null`
+ * One message in a get-status response, for SMS and Messenger alike.
+ *
+ * `statusCode` is the raw value; `status` is its typed view and is `null`
  * for a code this SDK does not know yet, so a new server-side status never
- * fails the call.
+ * fails the whole call.
  */
-final class SendSingleMessengerResponse
+final class StatusReceptor
 {
     public function __construct(
-        public readonly string $groupId,
         public readonly string $messageId,
+        public readonly ?string $localId,
         public readonly int $statusCode,
         public readonly ?WebServiceMessageStatus $status,
         public readonly string $receptor,
-        public readonly ?string $localId,
-        public readonly bool $hide,
-        public readonly float $cost,
         public readonly ?\DateTimeImmutable $sendTime,
-        public readonly string $profile,
-        public readonly string $messenger,
+        public readonly ?\DateTimeImmutable $deliveryTime,
     ) {
     }
 
@@ -34,18 +32,16 @@ final class SendSingleMessengerResponse
      */
     public static function fromArray(array $data): self
     {
+        $statusCode = (int) $data['status'];
+
         return new self(
-            groupId: (string) $data['group_id'],
             messageId: (string) $data['message_id'],
-            statusCode: (int) $data['status'],
-            status: WebServiceCode::messageStatus((int) $data['status']),
-            receptor: (string) $data['receptor'],
             localId: isset($data['local_id']) ? (string) $data['local_id'] : null,
-            hide: (bool) $data['hide'],
-            cost: (float) $data['cost'],
+            statusCode: $statusCode,
+            status: WebServiceCode::messageStatus($statusCode),
+            receptor: (string) $data['receptor'],
             sendTime: isset($data['send_time']) ? new \DateTimeImmutable((string) $data['send_time']) : null,
-            profile: (string) $data['profile'],
-            messenger: (string) $data['messenger'],
+            deliveryTime: isset($data['delivery_time']) ? new \DateTimeImmutable((string) $data['delivery_time']) : null,
         );
     }
 
@@ -55,16 +51,12 @@ final class SendSingleMessengerResponse
     public function toArray(): array
     {
         return [
-            'group_id' => $this->groupId,
             'message_id' => $this->messageId,
+            'local_id' => $this->localId,
             'status' => $this->statusCode,
             'receptor' => $this->receptor,
-            'local_id' => $this->localId,
-            'hide' => $this->hide,
-            'cost' => $this->cost,
             'send_time' => $this->sendTime?->format(DATE_ATOM),
-            'profile' => $this->profile,
-            'messenger' => $this->messenger,
+            'delivery_time' => $this->deliveryTime?->format(DATE_ATOM),
         ];
     }
 }

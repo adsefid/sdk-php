@@ -33,6 +33,30 @@ final class ClientConfigTest extends TestCase
         yield 'carriage return' => ["bad\ragent"];
     }
 
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function invalidBaseUrlProvider(): iterable
+    {
+        yield 'empty' => [''];
+        yield 'blank' => ['   '];
+        yield 'no scheme' => ['api.test'];
+        yield 'relative path' => ['/relative'];
+        yield 'non-http scheme' => ['ftp://api.test'];
+    }
+
+    #[DataProvider('invalidBaseUrlProvider')]
+    public function testAnUnusableBaseUrlIsRejected(string $baseUrl): void
+    {
+        $this->expectException(AdsefidValidationException::class);
+        new ClientConfig(apiKey: 'k', baseUrl: $baseUrl);
+    }
+
+    public function testAPlainHttpBaseUrlIsAccepted(): void
+    {
+        self::assertSame('http://localhost:8080', (new ClientConfig(apiKey: 'k', baseUrl: 'http://localhost:8080'))->baseUrl);
+    }
+
     #[DataProvider('invalidUserAgentProvider')]
     public function testAnUnusableUserAgentIsRejected(string $userAgent): void
     {

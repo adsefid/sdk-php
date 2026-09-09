@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace Adsefid\Sdk\Webhooks;
 
-use Adsefid\Sdk\Enums\WebServiceMessageStatus;
-
 final readonly class MessengerStatusWebhookEvent extends WebhookEvent
 {
     /**
-     * @param array<int, array{id: string, local_id: ?string, status_delivery: WebServiceMessageStatus, delivery_time: ?\DateTimeImmutable}> $data
+     * @param list<StatusUpdateItem> $data
      */
     public function __construct(
         string $id,
@@ -34,13 +32,8 @@ final readonly class MessengerStatusWebhookEvent extends WebhookEvent
             attempt: (int) $payload['attempt'],
             version: (string) $payload['version'],
             data: array_map(
-                static fn (array $item): array => [
-                    'id' => (string) $item['id'],
-                    'local_id' => isset($item['local_id']) ? (string) $item['local_id'] : null,
-                    'status_delivery' => WebServiceMessageStatus::from((int) $item['status_delivery']),
-                    'delivery_time' => isset($item['delivery_time']) ? new \DateTimeImmutable((string) $item['delivery_time']) : null,
-                ],
-                (array) ($payload['data'] ?? []),
+                static fn (array $item): StatusUpdateItem => StatusUpdateItem::fromArray($item),
+                array_values((array) ($payload['data'] ?? [])),
             ),
         );
     }

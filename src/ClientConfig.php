@@ -26,8 +26,10 @@ final class ClientConfig
             throw new AdsefidValidationException('apiKey is required and must be non-blank.', 'apiKey');
         }
 
-        if (trim($this->baseUrl) === '') {
-            throw new AdsefidValidationException('baseUrl is required and must be non-blank.', 'baseUrl');
+        $scheme = parse_url($this->baseUrl, PHP_URL_SCHEME);
+        $host = parse_url($this->baseUrl, PHP_URL_HOST);
+        if (!is_string($scheme) || !in_array(strtolower($scheme), ['http', 'https'], true) || !is_string($host) || $host === '') {
+            throw new AdsefidValidationException('baseUrl must be an absolute http(s) URL.', 'baseUrl');
         }
 
         $this->userAgent = $userAgent ?? self::defaultUserAgent();

@@ -71,7 +71,7 @@ try {
 
     $status = $client->messenger->getStatus(new GetMessengerStatusRequest(messageIds: [$sent->messageId]));
     foreach ($status->receptors as $receptor) {
-        printf("  %s -> %s\n", $receptor['message_id'], $receptor['status']->name ?? 'unknown');
+        printf("  %s -> %s\n", $receptor->messageId, $receptor->status?->name ?? (string) $receptor->statusCode);
     }
 } catch (AdsefidException $exception) {
     fwrite(STDERR, $exception->getMessage() . "\n");

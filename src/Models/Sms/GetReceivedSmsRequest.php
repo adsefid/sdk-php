@@ -9,7 +9,8 @@ use Adsefid\Sdk\Support\LocalIdValidator;
 
 final class GetReceivedSmsRequest
 {
-    private const MAX_COUNT_EXCLUSIVE = 500;
+    private const MIN_COUNT = 1;
+    private const MAX_COUNT = 499;
 
     /**
      * @throws AdsefidValidationException if `lineNumber` is empty or `count` is outside `1`-`499`.
@@ -22,7 +23,7 @@ final class GetReceivedSmsRequest
         LocalIdValidator::requireNonEmpty($this->lineNumber, 'line_number');
 
         if ($this->count !== null) {
-            LocalIdValidator::intRange($this->count, 1, self::MAX_COUNT_EXCLUSIVE - 1, 'count');
+            LocalIdValidator::intRange($this->count, self::MIN_COUNT, self::MAX_COUNT, 'count');
         }
     }
 
