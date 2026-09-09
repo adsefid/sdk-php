@@ -193,10 +193,12 @@ final class WebhookVerifierTest extends TestCase
         yield 'non-numeric timestamp' => [$body, $signature, 'not-a-number'];
         yield 'empty timestamp' => [$body, $signature, ''];
 
-        $stale = WebhookSigner::now(-301);
+        // Well outside the 300s window: the provider runs before the test does,
+        // so a one-second margin could expire between the two.
+        $stale = WebhookSigner::now(-600);
         yield 'stale timestamp' => [$body, WebhookSigner::sign($vector['secret'], $stale, $body), $stale];
 
-        $future = WebhookSigner::now(301);
+        $future = WebhookSigner::now(600);
         yield 'future timestamp' => [$body, WebhookSigner::sign($vector['secret'], $future, $body), $future];
     }
 
