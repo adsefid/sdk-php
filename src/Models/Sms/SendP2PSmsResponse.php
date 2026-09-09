@@ -5,18 +5,11 @@ declare(strict_types=1);
 namespace Adsefid\Sdk\Models\Sms;
 
 use Adsefid\Sdk\Enums\LineSelector;
-use Adsefid\Sdk\Enums\WebServiceMessageStatus;
-use Adsefid\Sdk\Enums\WebServiceResponseCode;
 
 final class SendP2PSmsResponse
 {
     /**
-     * Per-item `status` is a `WebServiceCode` (doc 3.3): 1000-1999 means the
-     * item was accepted (`messageStatus` set, `errorCode` null); 2000+ means
-     * that specific receptor failed (`errorCode` set, `messageStatus` null).
-     * `statusCode` always holds the raw value so unknown future codes never crash decoding.
-     *
-     * @param array<int, array{message_id: ?string, receptor: string, statusCode: int, messageStatus: ?WebServiceMessageStatus, errorCode: ?WebServiceResponseCode, local_id: ?string, message: string, hide: bool, segment_count: int, cost: float}> $messages
+     * @param list<P2PSmsMessageResult> $messages One entry per requested item, in request order; see P2PSmsMessageResult for the partial-success semantics.
      * @param array<int, int> $counts
      */
     public function __construct(
@@ -44,23 +37,8 @@ final class SendP2PSmsResponse
         return new self(
             groupId: (string) $data['group_id'],
             messages: array_map(
-                static function (array $message): array {
-                    $statusCode = (int) $message['status'];
-
-                    return [
-                        'message_id' => isset($message['message_id']) ? (string) $message['message_id'] : null,
-                        'receptor' => (string) $message['receptor'],
-                        'statusCode' => $statusCode,
-                        'messageStatus' => WebServiceMessageStatus::tryFrom($statusCode),
-                        'errorCode' => WebServiceResponseCode::tryFrom($statusCode),
-                        'local_id' => isset($message['local_id']) ? (string) $message['local_id'] : null,
-                        'message' => (string) $message['message'],
-                        'hide' => (bool) $message['hide'],
-                        'segment_count' => (int) $message['segment_count'],
-                        'cost' => (float) $message['cost'],
-                    ];
-                },
-                (array) $data['messages'],
+                static fn (array $item): P2PSmsMessageResult => P2PSmsMessageResult::fromArray($item),
+                array_values((array) $data['messages']),
             ),
             sendTime: isset($data['send_time']) ? new \DateTimeImmutable((string) $data['send_time']) : null,
             lineNumber: (string) $data['line_number'],
@@ -83,19 +61,7 @@ final class SendP2PSmsResponse
 
         return [
             'group_id' => $this->groupId,
-            'messages' => array_map(
-                static fn (array $message): array => [
-                    'message_id' => $message['message_id'],
-                    'receptor' => $message['receptor'],
-                    'status' => $message['statusCode'],
-                    'local_id' => $message['local_id'],
-                    'message' => $message['message'],
-                    'hide' => $message['hide'],
-                    'segment_count' => $message['segment_count'],
-                    'cost' => $message['cost'],
-                ],
-                $this->messages,
-            ),
+            'messages' => array_map(static fn (P2PSmsMessageResult $item): array => $item->toArray(), $this->messages),
             'send_time' => $this->sendTime?->format(DATE_ATOM),
             'line_number' => $this->lineNumber,
             'line_selector' => $this->lineSelector?->value,

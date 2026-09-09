@@ -59,7 +59,7 @@ final class WebhookVerifierTest extends TestCase
         self::assertSame(1, $event->attempt);
         self::assertSame('1', $event->version);
         self::assertCount(1, $event->data);
-        self::assertNotSame('', $event->data[0]['sender']);
+        self::assertNotSame('', $event->data[0]->sender);
     }
 
     /**
@@ -148,8 +148,32 @@ final class WebhookVerifierTest extends TestCase
         );
 
         self::assertInstanceOf(StatusWebhookEvent::class, $event);
-        self::assertSame(WebServiceMessageStatus::Delivered, $event->data[0]['status_delivery']);
-        self::assertSame('order-10001', $event->data[0]['local_id']);
+        self::assertSame(WebServiceMessageStatus::Delivered, $event->data[0]->statusDelivery);
+        self::assertSame(1002, $event->data[0]->statusDeliveryCode);
+        self::assertSame('order-10001', $event->data[0]->localId);
+    }
+
+    /**
+     * A delivery status this SDK does not know yet must still verify and parse:
+     * the raw code stays readable and the typed view is null.
+     */
+    public function testAnUnknownDeliveryStatusIsCarriedThroughNotRejected(): void
+    {
+        $vector = self::vector();
+        $payload = Fixtures::json('webhooks/status.body.json');
+        $payload['data'][0]['status_delivery'] = 1998;
+        $body = json_encode($payload, JSON_THROW_ON_ERROR);
+        $timestamp = WebhookSigner::now();
+
+        $event = (new WebhookVerifier($vector['secret']))->verifyAndParse(
+            $body,
+            WebhookSigner::sign($vector['secret'], $timestamp, $body),
+            $timestamp,
+        );
+
+        self::assertInstanceOf(StatusWebhookEvent::class, $event);
+        self::assertSame(1998, $event->data[0]->statusDeliveryCode);
+        self::assertNull($event->data[0]->statusDelivery);
     }
 
     /**

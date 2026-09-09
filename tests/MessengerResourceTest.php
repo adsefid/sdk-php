@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Adsefid\Sdk\Tests;
 
+use Adsefid\Sdk\Enums\WebServiceResponseCode;
 use Adsefid\Sdk\Exceptions\AdsefidValidationException;
 use Adsefid\Sdk\Http\MultipartStreamBuilder;
+use Adsefid\Sdk\Models\Messenger\BulkMessengerReceptor;
 use Adsefid\Sdk\Models\Messenger\CancelMessengerRequest;
 use Adsefid\Sdk\Models\Messenger\GetMessengerStatusRequest;
 use Adsefid\Sdk\Models\Messenger\SendBulkMessengerRequest;
@@ -44,13 +46,14 @@ final class MessengerResourceTest extends TestCase
         [$client] = TestClient::respondingWithFixture('envelopes/messenger.send_bulk.partial_success.json');
 
         $result = $client->messenger->sendBulk(new SendBulkMessengerRequest(
-            receptors: [['receptor' => 'a'], ['receptor' => 'b']],
+            receptors: [new BulkMessengerReceptor('a'), new BulkMessengerReceptor('b')],
             message: 'm',
             profile: 'p',
         ));
 
-        self::assertSame([1000, 2025], array_column($result->receptors, 'statusCode'));
-        self::assertNull($result->receptors[1]['message_id']);
+        self::assertSame([1000, 2025], array_map(static fn ($item) => $item->statusCode, $result->receptors));
+        self::assertSame(WebServiceResponseCode::ReceptorBlacklisted, $result->receptors[1]->errorCode);
+        self::assertNull($result->receptors[1]->messageId);
     }
 
     public function testSendTemplateKeepsLeadingZeros(): void

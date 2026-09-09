@@ -5,7 +5,13 @@ declare(strict_types=1);
 namespace Adsefid\Sdk\Models\Messenger;
 
 use Adsefid\Sdk\Enums\WebServiceMessageStatus;
+use Adsefid\Sdk\Support\WebServiceCode;
 
+/**
+ * `statusCode` is the raw status; `status` is its typed view and is `null`
+ * for a code this SDK does not know yet, so a new server-side status never
+ * fails the call.
+ */
 final class SendTemplateMessengerResponse
 {
     /**
@@ -14,7 +20,8 @@ final class SendTemplateMessengerResponse
     public function __construct(
         public readonly string $groupId,
         public readonly string $messageId,
-        public readonly WebServiceMessageStatus $status,
+        public readonly int $statusCode,
+        public readonly ?WebServiceMessageStatus $status,
         public readonly ?string $localId,
         public readonly string $templateId,
         public readonly ?\DateTimeImmutable $sendTime,
@@ -36,7 +43,8 @@ final class SendTemplateMessengerResponse
         return new self(
             groupId: (string) $data['group_id'],
             messageId: (string) $data['message_id'],
-            status: WebServiceMessageStatus::from((int) $data['status']),
+            statusCode: (int) $data['status'],
+            status: WebServiceCode::messageStatus((int) $data['status']),
             localId: isset($data['local_id']) ? (string) $data['local_id'] : null,
             templateId: (string) $data['template_id'],
             sendTime: isset($data['send_time']) ? new \DateTimeImmutable((string) $data['send_time']) : null,
@@ -58,7 +66,7 @@ final class SendTemplateMessengerResponse
         return [
             'group_id' => $this->groupId,
             'message_id' => $this->messageId,
-            'status' => $this->status->value,
+            'status' => $this->statusCode,
             'local_id' => $this->localId,
             'template_id' => $this->templateId,
             'send_time' => $this->sendTime?->format(DATE_ATOM),

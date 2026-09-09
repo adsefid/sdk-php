@@ -54,9 +54,9 @@ try {
     foreach ($status->receptors as $receptor) {
         printf(
             "  %s -> %s (delivered: %s)\n",
-            $receptor['message_id'],
-            $receptor['status']->name ?? 'unknown',
-            $receptor['delivery_time']?->format(DATE_ATOM) ?? 'not yet',
+            $receptor->messageId,
+            $receptor->status?->name ?? (string) $receptor->statusCode,
+            $receptor->deliveryTime?->format(DATE_ATOM) ?? 'not yet',
         );
     }
 
@@ -79,9 +79,9 @@ try {
     foreach ($received->messages as $message) {
         printf(
             "  from %s at %s: %s\n",
-            $message['sender'],
-            $message['receive_date']->format(DATE_ATOM),
-            $message['message'],
+            $message->sender,
+            $message->receiveDate->format(DATE_ATOM),
+            $message->message,
         );
     }
 } catch (AdsefidException $exception) {

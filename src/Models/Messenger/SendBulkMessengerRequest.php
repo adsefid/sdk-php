@@ -12,7 +12,7 @@ final class SendBulkMessengerRequest
     private const MESSAGE_MAX_LENGTH = 4000;
 
     /**
-     * @param array<int, array{receptor: string, local_id?: ?string, hide?: bool}> $receptors
+     * @param list<BulkMessengerReceptor> $receptors
      *
      * @throws AdsefidValidationException if `receptors` is empty, a required field is empty, `message` exceeds 4000 characters, or any `receptors[].local_id` doesn't match the required pattern.
      */
@@ -29,8 +29,8 @@ final class SendBulkMessengerRequest
         LocalIdValidator::requireNonEmpty($this->profile, 'profile');
 
         foreach ($this->receptors as $index => $receptor) {
-            LocalIdValidator::requireNonEmpty($receptor['receptor'], sprintf('receptors[%d].receptor', $index));
-            LocalIdValidator::validate($receptor['local_id'] ?? null, sprintf('receptors[%d].local_id', $index));
+            LocalIdValidator::requireNonEmpty($receptor->receptor, sprintf('receptors[%d].receptor', $index));
+            LocalIdValidator::validate($receptor->localId, sprintf('receptors[%d].local_id', $index));
         }
     }
 
@@ -40,14 +40,7 @@ final class SendBulkMessengerRequest
     public function toArray(): array
     {
         $data = [
-            'receptors' => array_map(
-                static fn (array $receptor): array => [
-                    'receptor' => $receptor['receptor'],
-                    'local_id' => $receptor['local_id'] ?? null,
-                    'hide' => $receptor['hide'] ?? false,
-                ],
-                $this->receptors,
-            ),
+            'receptors' => array_map(static fn (BulkMessengerReceptor $receptor): array => $receptor->toArray(), $this->receptors),
             'message' => $this->message,
             'profile' => $this->profile,
         ];

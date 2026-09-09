@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Adsefid\Sdk\Models\Messenger;
 
-use Adsefid\Sdk\Enums\WebServiceMessageStatus;
+use Adsefid\Sdk\Models\Common\CancelledMessage;
 
 final class CancelMessengerResponse
 {
     /**
-     * @param array<int, array{message_id: string, local_id: ?string, status: WebServiceMessageStatus}> $cancelledMessages
-     * @param array<int, array{message_id: string, local_id: ?string, status: WebServiceMessageStatus}> $failedToCancel
+     * @param list<CancelledMessage> $cancelledMessages
+     * @param list<CancelledMessage> $failedToCancel Messages that could not be cancelled (e.g. already sent), with their current status.
      */
     public function __construct(
         public readonly array $cancelledMessages,
@@ -23,15 +23,11 @@ final class CancelMessengerResponse
      */
     public static function fromArray(array $data): self
     {
-        $mapItem = static fn (array $item): array => [
-            'message_id' => (string) $item['message_id'],
-            'local_id' => isset($item['local_id']) ? (string) $item['local_id'] : null,
-            'status' => WebServiceMessageStatus::from((int) $item['status']),
-        ];
+        $mapItem = static fn (array $item): CancelledMessage => CancelledMessage::fromArray($item);
 
         return new self(
-            cancelledMessages: array_map($mapItem, (array) ($data['cancelled_messages'] ?? [])),
-            failedToCancel: array_map($mapItem, (array) ($data['failed_to_cancel'] ?? [])),
+            cancelledMessages: array_map($mapItem, array_values((array) ($data['cancelled_messages'] ?? []))),
+            failedToCancel: array_map($mapItem, array_values((array) ($data['failed_to_cancel'] ?? []))),
         );
     }
 
@@ -40,11 +36,7 @@ final class CancelMessengerResponse
      */
     public function toArray(): array
     {
-        $mapItem = static fn (array $item): array => [
-            'message_id' => $item['message_id'],
-            'local_id' => $item['local_id'],
-            'status' => $item['status']->value,
-        ];
+        $mapItem = static fn (CancelledMessage $item): array => $item->toArray();
 
         return [
             'cancelled_messages' => array_map($mapItem, $this->cancelledMessages),

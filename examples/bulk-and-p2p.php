@@ -21,8 +21,13 @@ require __DIR__ . '/../vendor/autoload.php';
 use Adsefid\Sdk\AdsefidClient;
 use Adsefid\Sdk\ClientConfig;
 use Adsefid\Sdk\Exceptions\AdsefidException;
+use Adsefid\Sdk\Models\Sms\BulkSmsReceptor;
+use Adsefid\Sdk\Models\Sms\BulkSmsReceptorResult;
+use Adsefid\Sdk\Models\Sms\P2PSmsMessage;
+use Adsefid\Sdk\Models\Sms\P2PSmsMessageResult;
 use Adsefid\Sdk\Models\Sms\SendBulkSmsRequest;
 use Adsefid\Sdk\Models\Sms\SendP2PSmsRequest;
+use Adsefid\Sdk\Support\WebServiceCode;
 use GuzzleHttp\Client as GuzzleClient;
 
 $apiKey = getenv('ADSEFID_API_KEY');
@@ -34,25 +39,22 @@ if ($apiKey === false || $lineNumber === false) {
 
 $client = new AdsefidClient(new ClientConfig(apiKey: $apiKey), new GuzzleClient());
 
-/**
- * @param array{message_id: ?string, receptor: string, local_id: ?string, statusCode: int} $item
- */
-function report(array $item): void
+function report(BulkSmsReceptorResult|P2PSmsMessageResult $item): void
 {
-    $label = $item['local_id'] ?? '-';
+    $label = $item->localId ?? '-';
 
-    if ($item['statusCode'] >= 2000) {
-        printf("  %-14s (%s) FAILED with code %d\n", $item['receptor'], $label, $item['statusCode']);
+    if ($item->errorCode !== null || WebServiceCode::isErrorCode($item->statusCode)) {
+        printf("  %-14s (%s) FAILED with code %d (%s)\n", $item->receptor, $label, $item->statusCode, $item->errorCode?->name ?? 'unknown');
 
         return;
     }
 
     printf(
-        "  %-14s (%s) accepted as %s, status %d\n",
-        $item['receptor'],
+        "  %-14s (%s) accepted as %s, status %s\n",
+        $item->receptor,
         $label,
-        $item['message_id'] ?? '-',
-        $item['statusCode'],
+        $item->messageId ?? '-',
+        $item->messageStatus?->name ?? (string) $item->statusCode,
     );
 }
 
@@ -62,8 +64,8 @@ try {
     // report to your own record without storing our message IDs.
     $bulk = $client->sms->sendBulk(new SendBulkSmsRequest(
         receptors: [
-            ['receptor' => '09120000000', 'local_id' => 'maint-1'],
-            ['receptor' => '09120000001', 'local_id' => 'maint-2'],
+            new BulkSmsReceptor('09120000000', localId: 'maint-1'),
+            new BulkSmsReceptor('09120000001', localId: 'maint-2'),
         ],
         message: 'Scheduled maintenance tonight from 01:00 to 03:00.',
         lineNumber: $lineNumber,
@@ -78,8 +80,8 @@ try {
     // A different message per receptor, in one request.
     $p2p = $client->sms->sendP2P(new SendP2PSmsRequest(
         messages: [
-            ['receptor' => '09120000000', 'message' => 'Hi Ali, your order #1001 shipped.', 'local_id' => 'ship-1001'],
-            ['receptor' => '09120000001', 'message' => 'Hi Reza, your order #1002 shipped.', 'local_id' => 'ship-1002'],
+            new P2PSmsMessage('09120000000', 'Hi Ali, your order #1001 shipped.', localId: 'ship-1001'),
+            new P2PSmsMessage('09120000001', 'Hi Reza, your order #1002 shipped.', localId: 'ship-1002'),
         ],
         lineNumber: $lineNumber,
     ));

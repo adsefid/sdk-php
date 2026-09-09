@@ -6,14 +6,18 @@ namespace Adsefid\Sdk\Tests;
 
 use Adsefid\Sdk\Enums\LineSelector;
 use Adsefid\Sdk\Enums\WebServiceMessageStatus;
+use Adsefid\Sdk\Enums\WebServiceResponseCode;
 use Adsefid\Sdk\Exceptions\AdsefidValidationException;
+use Adsefid\Sdk\Models\Sms\BulkSmsReceptor;
 use Adsefid\Sdk\Models\Sms\CancelSmsRequest;
 use Adsefid\Sdk\Models\Sms\GetReceivedSmsRequest;
 use Adsefid\Sdk\Models\Sms\GetSmsStatusRequest;
+use Adsefid\Sdk\Models\Sms\P2PSmsMessage;
 use Adsefid\Sdk\Models\Sms\SendBulkSmsRequest;
 use Adsefid\Sdk\Models\Sms\SendP2PSmsRequest;
 use Adsefid\Sdk\Models\Sms\SendSingleSmsRequest;
 use Adsefid\Sdk\Models\Sms\SendTemplateSmsRequest;
+use Adsefid\Sdk\Tests\Support\Fixtures;
 use Adsefid\Sdk\Tests\Support\TestClient;
 use PHPUnit\Framework\TestCase;
 
@@ -89,17 +93,21 @@ final class SmsResourceTest extends TestCase
         [$client] = TestClient::respondingWithFixture('envelopes/sms.send_bulk.partial_success.json');
 
         $result = $client->sms->sendBulk(new SendBulkSmsRequest(
-            receptors: [['receptor' => 'a'], ['receptor' => 'b']],
+            receptors: [new BulkSmsReceptor('a'), new BulkSmsReceptor('b')],
             message: 'm',
             lineNumber: '3000xxxx',
         ));
 
         self::assertCount(2, $result->receptors);
-        self::assertSame(1000, $result->receptors[0]['statusCode']);
+        self::assertSame(1000, $result->receptors[0]->statusCode);
+        self::assertSame(WebServiceMessageStatus::Scheduled, $result->receptors[0]->messageStatus);
+        self::assertNull($result->receptors[0]->errorCode);
         // 2025 RECEPTOR_BLACKLISTED is a response code, not a message status —
         // which is why the raw int is kept alongside the typed views.
-        self::assertSame(2025, $result->receptors[1]['statusCode']);
-        self::assertNull($result->receptors[1]['message_id']);
+        self::assertSame(2025, $result->receptors[1]->statusCode);
+        self::assertNull($result->receptors[1]->messageStatus);
+        self::assertSame(WebServiceResponseCode::ReceptorBlacklisted, $result->receptors[1]->errorCode);
+        self::assertNull($result->receptors[1]->messageId);
         self::assertSame(2, $result->totalCount);
     }
 
@@ -108,11 +116,28 @@ final class SmsResourceTest extends TestCase
         [$client] = TestClient::respondingWithFixture('envelopes/sms.send_p2p.partial_success.json');
 
         $result = $client->sms->sendP2P(new SendP2PSmsRequest(
-            messages: [['receptor' => 'a', 'message' => 'x']],
+            messages: [new P2PSmsMessage('a', 'x')],
             lineNumber: '3000xxxx',
         ));
 
-        self::assertSame([1000, 2014], array_column($result->messages, 'statusCode'));
+        self::assertSame([1000, 2014], array_map(static fn ($item) => $item->statusCode, $result->messages));
+        self::assertSame(WebServiceResponseCode::InvalidReceptor, $result->messages[1]->errorCode);
+    }
+
+    /**
+     * A status code this SDK does not know yet must not fail the call: the raw
+     * value stays readable and the typed view is simply null.
+     */
+    public function testAnUnknownStatusCodeIsCarriedThroughNotRejected(): void
+    {
+        $body = Fixtures::json('envelopes/sms.send_single.success.json');
+        $body['data']['status'] = 1998;
+        [$client] = TestClient::respondingWith(json_encode($body, JSON_THROW_ON_ERROR));
+
+        $result = $client->sms->sendSingle(new SendSingleSmsRequest('a', '3000', 'm'));
+
+        self::assertSame(1998, $result->statusCode);
+        self::assertNull($result->status);
     }
 
     /**
@@ -201,6 +226,8 @@ final class SmsResourceTest extends TestCase
         yield 'invalid local id' => [static fn () => new SendSingleSmsRequest('a', '3000', 'm', localId: '-bad')];
         yield 'no receptors' => [static fn () => new SendBulkSmsRequest([], 'm', '3000')];
         yield 'no messages' => [static fn () => new SendP2PSmsRequest([], '3000')];
+        yield 'bulk receptor with an invalid local id' => [static fn () => new SendBulkSmsRequest([new BulkSmsReceptor('a', localId: '-bad')], 'm', '3000')];
+        yield 'p2p message over the limit' => [static fn () => new SendP2PSmsRequest([new P2PSmsMessage('a', str_repeat('x', 901))], '3000')];
         yield 'status with neither id list' => [static fn () => new GetSmsStatusRequest()];
         yield 'cancel with neither id list' => [static fn () => new CancelSmsRequest()];
         yield 'received count of zero' => [static fn () => new GetReceivedSmsRequest('3000', 0)];
