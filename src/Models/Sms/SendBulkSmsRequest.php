@@ -15,7 +15,7 @@ final class SendBulkSmsRequest
     /**
      * @param list<BulkSmsReceptor> $receptors
      *
-     * @throws AdsefidValidationException if `receptors` is empty, a required field is empty, `message` exceeds 900 characters, or any `receptors[].local_id` doesn't match the required pattern.
+     * @throws AdsefidValidationException if `receptors` is empty, a request-level required field is empty, or `message` exceeds 900 characters. Item errors are returned in the partial API response.
      */
     public function __construct(
         public readonly array $receptors,
@@ -28,11 +28,6 @@ final class SendBulkSmsRequest
         LocalIdValidator::requireNonEmpty($this->message, 'message');
         LocalIdValidator::maxLength($this->message, self::MESSAGE_MAX_LENGTH, 'message');
         LocalIdValidator::requireNonEmpty($this->lineNumber, 'line_number');
-
-        foreach ($this->receptors as $index => $receptor) {
-            LocalIdValidator::requireNonEmpty($receptor->receptor, sprintf('receptors[%d].receptor', $index));
-            LocalIdValidator::validate($receptor->localId, sprintf('receptors[%d].local_id', $index));
-        }
     }
 
     /**

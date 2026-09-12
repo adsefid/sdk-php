@@ -11,7 +11,7 @@
  * them is non-null.
  *
  * Usage:
- *     ADSEFID_API_KEY=... ADSEFID_LINE_NUMBER=3000xxxx php examples/bulk-and-p2p.php
+ *     ADSEFID_API_KEY=... ADSEFID_LINE_NUMBER=983000XXX php examples/bulk-and-p2p.php
  */
 
 declare(strict_types=1);

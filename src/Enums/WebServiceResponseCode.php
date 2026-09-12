@@ -52,6 +52,8 @@ enum WebServiceResponseCode: int
     case InvalidFile = 2043;
     case AccessDenied = 2044;
     case Rejected = 2045;
+    case InvalidMessageIds = 2046;
+    case FileTooLarge = 2047;
 
     /**
      * The HTTP status the API returns alongside this response code (doc §3.4).
@@ -105,6 +107,8 @@ enum WebServiceResponseCode: int
             self::InvalidFile => 400,
             self::AccessDenied => 403,
             self::Rejected => 400,
+            self::InvalidMessageIds => 400,
+            self::FileTooLarge => 413,
         };
     }
 }

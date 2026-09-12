@@ -6,11 +6,12 @@ This repository is the PHP client SDK for the adsefid.com SMS Web Service API (p
 
 ## Source of truth
 
-The API surface (endpoints, field names, types, validation rules, enums, example payloads, webhook behavior) is defined by the published adsefid.com SMS Web Service API documentation. This SDK is verified against doc version v1.12.0. Re-read the relevant section before changing any endpoint, request/response model, or enum. The SDK follows independent Semantic Versioning from repository tags; never copy the API-document version into a tag. Record both versions in the README.
+The API surface (endpoints, field names, types, validation rules, enums, example payloads, webhook behavior) is defined by the published adsefid.com SMS Web Service API documentation. This SDK is verified against doc version v1.13.0. Re-read the relevant section before changing any endpoint, request/response model, or enum. The SDK follows independent Semantic Versioning from repository tags; never copy the API-document version into a tag. Record both versions in the README.
 
 A small number of facts below are empirically observed behaviors of the live API that are easy to get wrong from a literal reading of the documentation's prose or pseudo-code. Trust these notes over an ambiguous doc reading:
 
-- The response envelope's `error.details` is intentionally untyped (`mixed`) — its shape varies per endpoint (validation map, bulk item list, cancel-specific map, or absent). Never give it a strong class.
+- The response envelope's `error.details` uses the shared typed `ApiErrorDetails` shape: optional `errors` maps field names (or rejected cancel IDs) to `ApiFieldError`, and optional `items` carries indexed `ApiItemError` entries. Preserve unknown codes through `rawCode`.
+- Bulk/P2P item validation happens in the API. Validate request-level fields locally, but send item values unchanged so valid siblings can still succeed.
 - Per-item `status` fields in bulk/P2P send responses are a `WebServiceCode` (doc §3.3), not a pure `WebServiceMessageStatus` — a value can legitimately be `2000+` (an error code for that one recipient, e.g. `2025 RECEPTOR_BLACKLISTED`) even though the overall response is `status: "success"`. This is why the per-item value objects (`BulkSmsReceptorResult`, `P2PSmsMessageResult`, `BulkMessengerReceptorResult`, `P2PMessengerReceptorResult`) carry `statusCode` (raw int) plus nullable `messageStatus`/`errorCode` views (split by `Support\WebServiceCode`) rather than a single hard-mapped enum. Every other status field (`SendSingle*Response`, `SendTemplate*Response`, `Common\StatusReceptor`, `Common\CancelledMessage`, `Webhooks\StatusUpdateItem`) is parsed the same way: raw int plus a nullable `WebServiceMessageStatus`, never `WebServiceMessageStatus::from()`, so an unknown future code cannot throw a raw `\ValueError` out of a decode. This was caught by decoding the doc's own §4.2/§4.3 examples — always decode the doc's literal example JSON when adding a new endpoint, not just synthetic values in range.
 - Webhook signatures are plain Base64, not hex-then-Base64. The signature is HMAC-SHA256 over the literal string `"{timestamp}.{raw_body}"`, and the raw digest bytes are Base64-encoded directly (`base64_encode(hash_hmac('sha256', $input, $secret, true))`) — there is no intermediate hex-encoding step, even though a literal reading of some spec pseudo-code can suggest one. The header value is `"v1=" + base64signature`; compare with `hash_equals()`. See `src/Webhooks/WebhookVerifier.php`.
 - `TemplateParameterType` has an undocumented third value in the wild. The documented, supported public set is `{string, number}`. The live API has been observed to also emit a `url` value for some templates; this SDK intentionally models only the two documented values — do not add support for it without first confirming it against current, documented API behavior. See `src/Enums/TemplateParameterType.php`.
@@ -29,7 +30,8 @@ src/
 ├── Support/WebServiceCode.php     Range split of a raw WebServiceCode into WebServiceMessageStatus / WebServiceResponseCode
 ├── Exceptions/                    AdsefidException hierarchy (see README's error-handling section)
 ├── Enums/                         5 native backed enums: LineSelector, WebServiceMessageStatus, WebServiceResponseCode, TemplateState, TemplateParameterType
-├── Models/Common/ErrorPayload.php Maps the error envelope's `error` object
+├── Models/Common/ErrorPayload.php, ApiErrorDetails.php, ApiFieldError.php, ApiItemError.php
+│                                  Typed error-envelope models
 ├── Models/Common/StatusReceptor.php, CancelledMessage.php
 │                                  Typed items shared by the SMS and Messenger get-status / cancel responses
 ├── Models/Sms/, Models/Messenger/, Models/User/

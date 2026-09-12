@@ -10,12 +10,10 @@ use Adsefid\Sdk\Support\LocalIdValidator;
 
 final class SendP2PSmsRequest
 {
-    private const MESSAGE_MAX_LENGTH = 900;
-
     /**
      * @param list<P2PSmsMessage> $messages
      *
-     * @throws AdsefidValidationException if `messages` is empty, a required field is empty, any `messages[].message` exceeds 900 characters, or any `messages[].local_id` doesn't match the required pattern.
+     * @throws AdsefidValidationException if `messages` is empty or `line_number` is empty. Item errors are returned in the partial API response.
      */
     public function __construct(
         public readonly array $messages,
@@ -25,13 +23,6 @@ final class SendP2PSmsRequest
     ) {
         LocalIdValidator::requireNonEmptyArray($this->messages, 'messages');
         LocalIdValidator::requireNonEmpty($this->lineNumber, 'line_number');
-
-        foreach ($this->messages as $index => $message) {
-            LocalIdValidator::requireNonEmpty($message->receptor, sprintf('messages[%d].receptor', $index));
-            $body = LocalIdValidator::requireNonEmpty($message->message, sprintf('messages[%d].message', $index));
-            LocalIdValidator::maxLength($body, self::MESSAGE_MAX_LENGTH, sprintf('messages[%d].message', $index));
-            LocalIdValidator::validate($message->localId, sprintf('messages[%d].local_id', $index));
-        }
     }
 
     /**

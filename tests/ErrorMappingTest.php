@@ -81,11 +81,7 @@ final class ErrorMappingTest extends TestCase
         }
     }
 
-    /**
-     * The real shape of a validation failure: a field-to-message map under
-     * `errors`, with plain string values.
-     */
-    public function testValidationDetailsSurviveIntact(): void
+    public function testValidationDetailsAreStronglyTyped(): void
     {
         [$client] = TestClient::respondingWithFixture('errors/error.invalid_parameter.json', 400);
 
@@ -93,15 +89,11 @@ final class ErrorMappingTest extends TestCase
             $client->user->getTemplates(new GetUserTemplatesRequest());
             self::fail('expected an API exception');
         } catch (AdsefidApiException $exception) {
-            self::assertSame(
-                [
-                    'errors' => [
-                        'take' => 'invalid value for take',
-                        'state' => 'invalid value for state',
-                    ],
-                ],
-                $exception->details,
-            );
+            self::assertNotNull($exception->details);
+            self::assertNotNull($exception->details->errors);
+            self::assertSame(2024, $exception->details->errors['take']->rawCode);
+            self::assertSame(WebServiceResponseCode::InvalidParameter, $exception->details->errors['take']->responseCode);
+            self::assertSame('INVALID_PARAMETER', $exception->details->errors['state']->name);
         }
     }
 
@@ -110,39 +102,37 @@ final class ErrorMappingTest extends TestCase
      */
     public static function detailsShapeProvider(): iterable
     {
-        yield 'single send is a flat field to message map' => [
+        yield 'single send field errors' => [
             'errors/error.details_single.json',
-            ['receptor' => 'invalid value for receptor'],
+            ['errors' => ['receptor' => ['code' => 2014, 'name' => 'INVALID_RECEPTOR']]],
         ];
 
-        yield 'bulk carries per-item errors keyed by index' => [
+        yield 'bulk item errors' => [
             'errors/error.details_bulk.json',
             [
-                'errors' => ['line_number' => 'invalid value for line_number'],
-                'messages' => [
-                    ['index' => 0, 'errors' => ['receptor' => 'invalid value for receptor']],
+                'items' => [
+                    ['index' => 0, 'errors' => ['receptor' => ['code' => 2014, 'name' => 'INVALID_RECEPTOR']]],
                     ['index' => 2, 'errors' => [
-                        'local_id' => 'invalid value for local_id',
-                        'message' => 'invalid value for message',
+                        'local_id' => ['code' => 2007, 'name' => 'DUPLICATE_LOCAL_ID'],
                     ]],
                 ],
             ],
         ];
 
-        yield 'cancel is the one shape whose values are arrays' => [
+        yield 'cancel errors keyed by rejected id' => [
             'errors/error.details_cancel.json',
-            ['local_ids' => ['order-10001', 'order-10002']],
+            ['errors' => [
+                'order-10001' => ['code' => 2029, 'name' => 'INVALID_LOCAL_IDS'],
+                'order-10002' => ['code' => 2029, 'name' => 'INVALID_LOCAL_IDS'],
+            ]],
         ];
     }
 
     /**
-     * `details` is deliberately `mixed` because the service uses a different
-     * shape per endpoint. Each real shape must come through uncoerced.
-     *
      * @param array<string, mixed> $expected
      */
     #[DataProvider('detailsShapeProvider')]
-    public function testEveryDetailsShapeSurvivesUnchanged(string $fixture, array $expected): void
+    public function testEveryDetailsShapeMapsToTheSharedModel(string $fixture, array $expected): void
     {
         [$client] = TestClient::respondingWithFixture($fixture, 400);
 
@@ -150,7 +140,23 @@ final class ErrorMappingTest extends TestCase
             $client->user->getInfo();
             self::fail('expected an API exception');
         } catch (AdsefidApiException $exception) {
-            self::assertSame($expected, $exception->details);
+            self::assertNotNull($exception->details);
+            self::assertSame($expected, $exception->details->toArray());
+        }
+    }
+
+    public function testAnUnknownNestedCodeKeepsItsRawInteger(): void
+    {
+        $body = '{"status":"error","error":{"code":2024,"name":"INVALID_PARAMETER","details":{"errors":{"future":{"code":2999,"name":"FUTURE_CODE"}}}}}';
+        [$client] = TestClient::respondingWith($body, 400);
+
+        try {
+            $client->user->getInfo();
+            self::fail('expected an API exception');
+        } catch (AdsefidApiException $exception) {
+            self::assertNotNull($exception->details?->errors);
+            self::assertSame(2999, $exception->details->errors['future']->rawCode);
+            self::assertNull($exception->details->errors['future']->responseCode);
         }
     }
 

@@ -7,9 +7,8 @@ namespace Adsefid\Sdk\Models\Sms;
 /**
  * One receptor-and-message entry of a P2P SMS send (`SendP2PSmsRequest::$messages`).
  *
- * Validation of every item (non-empty fields, message length, `local_id`
- * shape) happens in the enclosing request's constructor, so the reported
- * field name carries the item's index.
+ * Item validation happens server-side so valid entries can still be accepted
+ * when another entry is rejected.
  */
 final class P2PSmsMessage
 {

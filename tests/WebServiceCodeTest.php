@@ -23,10 +23,18 @@ final class WebServiceCodeTest extends TestCase
         yield 'delivered' => [1002, WebServiceMessageStatus::Delivered, null];
         yield 'receptor blacklisted' => [2025, null, WebServiceResponseCode::ReceptorBlacklisted];
         yield 'invalid receptor' => [2014, null, WebServiceResponseCode::InvalidReceptor];
+        yield 'invalid message ids' => [2046, null, WebServiceResponseCode::InvalidMessageIds];
+        yield 'file too large' => [2047, null, WebServiceResponseCode::FileTooLarge];
         // Codes this SDK does not know yet map to neither view.
         yield 'unknown status' => [1500, null, null];
         yield 'unknown error' => [2999, null, null];
         yield 'zero' => [0, null, null];
+    }
+
+    public function testV113ResponseCodeHttpStatuses(): void
+    {
+        self::assertSame(400, WebServiceResponseCode::InvalidMessageIds->httpStatus());
+        self::assertSame(413, WebServiceResponseCode::FileTooLarge->httpStatus());
     }
 
     #[DataProvider('codeProvider')]

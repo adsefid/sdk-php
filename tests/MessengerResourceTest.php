@@ -10,7 +10,9 @@ use Adsefid\Sdk\Http\MultipartStreamBuilder;
 use Adsefid\Sdk\Models\Messenger\BulkMessengerReceptor;
 use Adsefid\Sdk\Models\Messenger\CancelMessengerRequest;
 use Adsefid\Sdk\Models\Messenger\GetMessengerStatusRequest;
+use Adsefid\Sdk\Models\Messenger\P2PMessengerReceptor;
 use Adsefid\Sdk\Models\Messenger\SendBulkMessengerRequest;
+use Adsefid\Sdk\Models\Messenger\SendP2PMessengerRequest;
 use Adsefid\Sdk\Models\Messenger\SendSingleMessengerRequest;
 use Adsefid\Sdk\Models\Messenger\SendTemplateMessengerRequest;
 use Adsefid\Sdk\Models\Messenger\UploadMessengerFileRequest;
@@ -43,10 +45,10 @@ final class MessengerResourceTest extends TestCase
 
     public function testBulkPartialSuccessIsNotAnError(): void
     {
-        [$client] = TestClient::respondingWithFixture('envelopes/messenger.send_bulk.partial_success.json');
+        [$client, $http] = TestClient::respondingWithFixture('envelopes/messenger.send_bulk.partial_success.json');
 
         $result = $client->messenger->sendBulk(new SendBulkMessengerRequest(
-            receptors: [new BulkMessengerReceptor('a'), new BulkMessengerReceptor('b')],
+            receptors: [new BulkMessengerReceptor('a'), new BulkMessengerReceptor('', '-bad')],
             message: 'm',
             profile: 'p',
         ));
@@ -54,6 +56,20 @@ final class MessengerResourceTest extends TestCase
         self::assertSame([1000, 2025], array_map(static fn ($item) => $item->statusCode, $result->receptors));
         self::assertSame(WebServiceResponseCode::ReceptorBlacklisted, $result->receptors[1]->errorCode);
         self::assertNull($result->receptors[1]->messageId);
+        self::assertCount(2, json_decode((string) $http->only()->getBody(), true)['receptors']);
+    }
+
+    public function testP2pItemErrorsReachTheApi(): void
+    {
+        [$client, $http] = TestClient::respondingWithFixture('envelopes/messenger.send_p2p.partial_success.json');
+
+        $result = $client->messenger->sendP2P(new SendP2PMessengerRequest(
+            receptors: [new P2PMessengerReceptor('a', 'm'), new P2PMessengerReceptor('', '')],
+            profile: 'p',
+        ));
+
+        self::assertSame([1000, 2014], array_map(static fn ($item) => $item->statusCode, $result->receptors));
+        self::assertCount(2, json_decode((string) $http->only()->getBody(), true)['receptors']);
     }
 
     public function testSendTemplateKeepsLeadingZeros(): void
