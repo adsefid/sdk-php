@@ -358,7 +358,7 @@ This SDK follows [Semantic Versioning](https://semver.org/). Its version number 
 and does not track, the adsefid.com Web Service API documentation's own version — the two are
 different things that happen to both look like version numbers.
 
-- **This SDK is currently at version `0.4.1`.** Package versions are set entirely by git tags on
+- **This SDK is currently at version `0.5.0`.** Package versions are set entirely by git tags on
   this repository; nothing is hardcoded in `composer.json`.
 - It is built against, and verified compatible with, adsefid.com Web Service API doc version
   **`v1.13.0`**. That pin is a compatibility statement, not this SDK's own version.
