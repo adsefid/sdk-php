@@ -50,13 +50,13 @@ try {
     if ($stream === false) {
         throw new RuntimeException('could not open a temporary stream');
     }
-    fwrite($stream, "Statement for September 2026\nTotal: 1,250,000 IRR\n");
+    fwrite($stream, "%PDF-1.1\n%%EOF\n");
     rewind($stream);
 
     $uploaded = $client->messenger->uploadFile(new UploadMessengerFileRequest(
         stream: $stream,
-        filename: 'statement.txt',
-        contentType: 'text/plain',
+        filename: 'statement.pdf',
+        contentType: 'application/pdf',
     ));
     printf("\nuploaded attachment as file_id %s\n", $uploaded->fileId);
 

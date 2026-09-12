@@ -7,17 +7,13 @@ namespace Adsefid\Sdk\Models\Common;
 /**
  * Maps the `error` object of the standard error envelope:
  * `{"status":"error","error":{"code":..,"name":..,"details":..}}`.
- *
- * `details` is intentionally `mixed` (decoded JSON: array|null) — its shape
- * is endpoint-specific (validation map, bulk item list, cancel-specific
- * map, or absent) and is never modeled as a strong type.
  */
 final class ErrorPayload
 {
     public function __construct(
         public readonly int $code,
         public readonly string $name,
-        public readonly mixed $details,
+        public readonly ?ApiErrorDetails $details,
     ) {
     }
 
@@ -29,7 +25,9 @@ final class ErrorPayload
         return new self(
             code: (int) ($data['code'] ?? 0),
             name: (string) ($data['name'] ?? 'UNKNOWN_ERROR'),
-            details: $data['details'] ?? null,
+            details: is_array($data['details'] ?? null)
+                ? ApiErrorDetails::fromArray($data['details'])
+                : null,
         );
     }
 
@@ -38,10 +36,15 @@ final class ErrorPayload
      */
     public function toArray(): array
     {
-        return [
+        $data = [
             'code' => $this->code,
             'name' => $this->name,
-            'details' => $this->details,
         ];
+
+        if ($this->details !== null) {
+            $data['details'] = $this->details->toArray();
+        }
+
+        return $data;
     }
 }

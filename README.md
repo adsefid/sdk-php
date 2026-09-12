@@ -38,7 +38,7 @@ $client = new AdsefidClient(
 try {
     $response = $client->sms->sendSingle(new SendSingleSmsRequest(
         receptor: '98912xxxxxxx',
-        lineNumber: '3000xxxx',
+        lineNumber: '983000XXX',
         message: 'Hello from adsefid/sdk',
         localId: 'order-10001',
     ));
@@ -116,7 +116,7 @@ Monetary response properties (`cost`, `totalCost`, and `creditLeft`) use `float`
 | user | getProfiles() | GET /v1/user/profiles | |
 | user | getTemplates(GetUserTemplatesRequest) | GET /v1/user/templates | |
 
-Every method **throws** on failure and returns a strongly-typed response DTO on success — there is no `Result`/`Either` wrapper. Bulk and P2P responses are still normal typed returns even when some recipients fail (HTTP 200, `status: "success"`, per-item status/error codes) — see [Partial success in bulk/P2P sends](#partial-success-in-bulkp2p-sends) below.
+Every method **throws** on failure and returns a strongly-typed response DTO on success — there is no `Result`/`Either` wrapper. Bulk and P2P responses are still normal typed returns even when some recipients fail (HTTP 200, `status: "success"`, per-item status/error codes) — see [Partial success in bulk/P2P sends](#partial-success-in-bulkp2p-sends) below. Item values are sent unchanged so the API can accept or reject them independently; only request-level fields are prevalidated.
 
 ## Error handling
 
@@ -138,24 +138,16 @@ try {
     // Any other status:"error" envelope, or an unexpected non-2xx response.
     echo "API error {$e->rawCode} ({$e->name}), HTTP {$e->httpStatusCode}\n";
     var_dump($e->responseCode); // ?WebServiceResponseCode — null if the server returned a code this SDK version doesn't know yet
-    var_dump($e->details); // mixed — shape is endpoint-specific (validation map, item list, ...), decoded JSON or null
+    var_dump($e->details); // ?ApiErrorDetails — typed field/item errors, or null
 } catch (AdsefidTransportException $e) {
     // Network/timeout failure at the PSR-18 client level.
     echo "Transport failure: {$e->getMessage()}\n";
 }
 ```
 
-`details` is not one shape — the service picks one per endpoint:
-
-| When | Shape | Example |
-|---|---|---|
-| Request validation (`2024 INVALID_PARAMETER`) | `{"errors": {field: message}}` — snake_case field paths, **string** values | `{"errors":{"take":"invalid value for take"}}` |
-| Single send | `{field: message}` — flat, no wrapper | `{"receptor":"invalid value for receptor"}` |
-| Bulk / P2P | `{"errors": {...}, "messages": [{"index": n, "errors": {...}}]}` — `index` is the position in *your* array, so gaps are normal | `{"errors":{},"messages":[{"index":2,"errors":{"local_id":"invalid value for local_id"}}]}` |
-| Cancel | `{field: [value, ...]}` — the one shape whose values are **arrays** | `{"local_ids":["order-10001"]}` |
-| Anything else | absent or `null` | |
-
-Decode it defensively for the endpoint you called rather than assuming a single shape.
+`$e->details` is an optional `ApiErrorDetails`. `errors` maps field names (or rejected cancel IDs)
+to `ApiFieldError`; `items` contains indexed `ApiItemError` entries for rejected bulk/P2P items.
+Each field error exposes `rawCode`, nullable `responseCode`, and `name`.
 
 ### Partial success in bulk/P2P sends
 
@@ -168,7 +160,7 @@ use Adsefid\Sdk\Models\Sms\SendBulkSmsRequest;
 $bulk = $client->sms->sendBulk(new SendBulkSmsRequest(
     receptors: [new BulkSmsReceptor('98912xxxxxxx', localId: 'b-1'), new BulkSmsReceptor('98993xxxxxxx', localId: 'b-2')],
     message: 'Hello',
-    lineNumber: '3000xxxx',
+    lineNumber: '983000XXX',
 ));
 foreach ($bulk->receptors as $item) {
     echo $item->errorCode !== null
@@ -189,7 +181,7 @@ Codes `2035` (`MESSAGE_LIMIT_REACHED`) and `2036` (`REQUEST_LIMIT_REACHED`), and
 |---|---|---|
 | `Adsefid\Sdk\Enums\LineSelector` | `int` | `PromotionalSendBased` (0), `PromotionalDeliverBased` (1), `BulkServiceSendBased` (2), `BulkServiceDeliverBased` (3), `CustomerClubServiceSendBased` (4), `CustomerClubServiceDeliverBased` (5) |
 | `Adsefid\Sdk\Enums\WebServiceMessageStatus` | `int` | 18 values, `1000`-`1999` (`SCHEDULED`, `SENDING`, `DELIVERED`, ... `UNKNOWN`) — see doc §3.2 |
-| `Adsefid\Sdk\Enums\WebServiceResponseCode` | `int` | 46 values, `2000`-`2045` (`INTERNAL_ERROR`, `INVALID_PLAN`, ... `REJECTED`) — see doc §3.4; has an `httpStatus()` helper method |
+| `Adsefid\Sdk\Enums\WebServiceResponseCode` | `int` | 48 values, `2000`-`2047` (`INTERNAL_ERROR`, ... `INVALID_MESSAGE_IDS`, `FILE_TOO_LARGE`) — see doc §3.4; has an `httpStatus()` helper method |
 | `Adsefid\Sdk\Enums\TemplateState` | `string` | `PendingApproval` (`pendingapproval`), `Approved` (`approved`), `Rejected` (`rejected`) |
 | `Adsefid\Sdk\Enums\TemplateParameterType` | `string` | `String` (`string`), `Number` (`number`) — the documented complete public set. The live service also emits an undocumented third value; such a parameter is dropped from `UserTemplateItem::$parameters` rather than surfaced as a case that does not exist. |
 
@@ -212,7 +204,7 @@ $client->sms->sendTemplate(new SendTemplateSmsRequest(
         'rate'    => 19.99,     // a float, where rounding is acceptable
     ],
     receptor: '09120000000',
-    lineNumber: '3000xxxx',
+    lineNumber: '983000XXX',
 ));
 ```
 
@@ -239,6 +231,9 @@ try {
     fclose($handle);
 }
 ```
+
+The service enforces its documented MIME allowlist and 15 MB limit. Oversized uploads return
+`FileTooLarge` (2047, HTTP 413).
 
 ## Webhook verification example
 
@@ -343,7 +338,7 @@ Runnable samples live in [`examples/`](examples) (excluded from the distributed 
 
 ```bash
 export ADSEFID_API_KEY=...
-export ADSEFID_LINE_NUMBER=3000xxxx
+export ADSEFID_LINE_NUMBER=983000XXX
 
 php examples/account.php            # account info, lines, profiles, templates; client config
 php examples/quickstart.php         # send one SMS, with full error triage
@@ -366,7 +361,7 @@ different things that happen to both look like version numbers.
 - **This SDK is currently at version `0.4.1`.** Package versions are set entirely by git tags on
   this repository; nothing is hardcoded in `composer.json`.
 - It is built against, and verified compatible with, adsefid.com Web Service API doc version
-  **`v1.12.0`**. That pin is a compatibility statement, not this SDK's own version.
+  **`v1.13.0`**. That pin is a compatibility statement, not this SDK's own version.
 - This SDK's version bumps under normal semver rules, driven by changes to *this SDK*: a patch for
   a bugfix, a minor for a backward-compatible addition (e.g. a new endpoint or field), a major for
   a breaking change to this SDK's own API. The doc-version pin above only changes when someone

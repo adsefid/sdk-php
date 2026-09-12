@@ -90,10 +90,10 @@ final class SmsResourceTest extends TestCase
 
     public function testBulkPartialSuccessIsNotAnError(): void
     {
-        [$client] = TestClient::respondingWithFixture('envelopes/sms.send_bulk.partial_success.json');
+        [$client, $http] = TestClient::respondingWithFixture('envelopes/sms.send_bulk.partial_success.json');
 
         $result = $client->sms->sendBulk(new SendBulkSmsRequest(
-            receptors: [new BulkSmsReceptor('a'), new BulkSmsReceptor('b')],
+            receptors: [new BulkSmsReceptor('a'), new BulkSmsReceptor('', '-bad')],
             message: 'm',
             lineNumber: '3000xxxx',
         ));
@@ -109,19 +109,21 @@ final class SmsResourceTest extends TestCase
         self::assertSame(WebServiceResponseCode::ReceptorBlacklisted, $result->receptors[1]->errorCode);
         self::assertNull($result->receptors[1]->messageId);
         self::assertSame(2, $result->totalCount);
+        self::assertCount(2, json_decode((string) $http->only()->getBody(), true)['receptors']);
     }
 
     public function testP2pPartialSuccessIsNotAnError(): void
     {
-        [$client] = TestClient::respondingWithFixture('envelopes/sms.send_p2p.partial_success.json');
+        [$client, $http] = TestClient::respondingWithFixture('envelopes/sms.send_p2p.partial_success.json');
 
         $result = $client->sms->sendP2P(new SendP2PSmsRequest(
-            messages: [new P2PSmsMessage('a', 'x')],
+            messages: [new P2PSmsMessage('a', 'x'), new P2PSmsMessage('', '')],
             lineNumber: '3000xxxx',
         ));
 
         self::assertSame([1000, 2014], array_map(static fn ($item) => $item->statusCode, $result->messages));
         self::assertSame(WebServiceResponseCode::InvalidReceptor, $result->messages[1]->errorCode);
+        self::assertCount(2, json_decode((string) $http->only()->getBody(), true)['messages']);
     }
 
     /**
@@ -226,8 +228,6 @@ final class SmsResourceTest extends TestCase
         yield 'invalid local id' => [static fn () => new SendSingleSmsRequest('a', '3000', 'm', localId: '-bad')];
         yield 'no receptors' => [static fn () => new SendBulkSmsRequest([], 'm', '3000')];
         yield 'no messages' => [static fn () => new SendP2PSmsRequest([], '3000')];
-        yield 'bulk receptor with an invalid local id' => [static fn () => new SendBulkSmsRequest([new BulkSmsReceptor('a', localId: '-bad')], 'm', '3000')];
-        yield 'p2p message over the limit' => [static fn () => new SendP2PSmsRequest([new P2PSmsMessage('a', str_repeat('x', 901))], '3000')];
         yield 'status with neither id list' => [static fn () => new GetSmsStatusRequest()];
         yield 'cancel with neither id list' => [static fn () => new CancelSmsRequest()];
         yield 'received count of zero' => [static fn () => new GetReceivedSmsRequest('3000', 0)];

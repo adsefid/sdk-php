@@ -7,9 +7,8 @@ namespace Adsefid\Sdk\Models\Sms;
 /**
  * One receptor of a bulk SMS send (`SendBulkSmsRequest::$receptors`).
  *
- * Validation of every item (non-empty fields, message length, `local_id`
- * shape) happens in the enclosing request's constructor, so the reported
- * field name carries the item's index.
+ * Item validation happens server-side so valid entries can still be accepted
+ * when another entry is rejected.
  */
 final class BulkSmsReceptor
 {

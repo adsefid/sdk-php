@@ -169,7 +169,7 @@ final class Transport
                 null,
                 'HTTP_429',
                 $httpStatusCode,
-                $rawBody !== '' ? $rawBody : null,
+                null,
             );
         }
 
@@ -180,7 +180,7 @@ final class Transport
                 null,
                 'HTTP_ERROR',
                 $httpStatusCode,
-                $rawBody !== '' ? $rawBody : null,
+                null,
             );
         }
 

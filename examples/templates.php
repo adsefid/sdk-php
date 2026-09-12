@@ -10,7 +10,7 @@
  * 1234 and 1.5 would not.
  *
  * Usage:
- *     ADSEFID_API_KEY=... ADSEFID_LINE_NUMBER=3000xxxx php examples/templates.php
+ *     ADSEFID_API_KEY=... ADSEFID_LINE_NUMBER=983000XXX php examples/templates.php
  */
 
 declare(strict_types=1);

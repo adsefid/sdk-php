@@ -8,7 +8,7 @@
  * checks before making the request.
  *
  * Usage:
- *     ADSEFID_API_KEY=... ADSEFID_LINE_NUMBER=3000xxxx php examples/status-and-cancel.php
+ *     ADSEFID_API_KEY=... ADSEFID_LINE_NUMBER=983000XXX php examples/status-and-cancel.php
  */
 
 declare(strict_types=1);
