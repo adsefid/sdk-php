@@ -9,17 +9,20 @@ use Adsefid\Sdk\Support\LocalIdValidator;
 
 final class CancelSmsRequest
 {
+    private const MAX_COMBINED_IDS = 2000;
+
     /**
      * @param string[] $messageIds
      * @param string[] $localIds
      *
-     * @throws AdsefidValidationException if both `messageIds` and `localIds` are empty.
+     * @throws AdsefidValidationException if id lists are empty or exceed 2000 distinct ids combined.
      */
     public function __construct(
         public readonly array $messageIds = [],
         public readonly array $localIds = [],
     ) {
         LocalIdValidator::requireAtLeastOne([$this->messageIds, $this->localIds], ['message_ids', 'local_ids']);
+        LocalIdValidator::maxCount(count(array_unique($this->messageIds)) + count(array_unique($this->localIds)), self::MAX_COMBINED_IDS, 'message_ids+local_ids');
     }
 
     /**

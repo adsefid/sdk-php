@@ -102,13 +102,13 @@ Monetary response properties (`cost`, `totalCost`, and `creditLeft`) use `float`
 | sms | sendP2P(SendP2PSmsRequest) | POST /v1/sms/p2p | Partial success is a normal typed return, not an exception |
 | sms | sendTemplate(SendTemplateSmsRequest) | POST /v1/sms/template | |
 | sms | getStatus(GetSmsStatusRequest) | GET /v1/sms/status | |
-| sms | cancel(CancelSmsRequest) | POST /v1/sms/cancel | |
+| sms | cancel(CancelSmsRequest) | POST /v1/sms/cancel | Awaiting approval, queued, or scheduled; no refund; max 2,000 distinct IDs combined |
 | sms | getReceived(GetReceivedSmsRequest) | GET /v1/sms/receive | |
 | messenger | sendSingle(SendSingleMessengerRequest) | POST /v1/messenger/single | |
 | messenger | sendBulk(SendBulkMessengerRequest) | POST /v1/messenger/bulk | Partial success is a normal typed return, not an exception |
 | messenger | sendP2P(SendP2PMessengerRequest) | POST /v1/messenger/p2p | Partial success is a normal typed return, not an exception |
 | messenger | uploadFile(UploadMessengerFileRequest) | POST /v1/messenger/file | Accepts a stream resource |
-| messenger | cancel(CancelMessengerRequest) | POST /v1/messenger/cancel | |
+| messenger | cancel(CancelMessengerRequest) | POST /v1/messenger/cancel | Awaiting approval, queued, or scheduled; no refund; max 2,000 distinct IDs combined |
 | messenger | sendTemplate(SendTemplateMessengerRequest) | POST /v1/messenger/template | |
 | messenger | getStatus(GetMessengerStatusRequest) | GET /v1/messenger/status | |
 | user | getInfo() | GET /v1/user/info | |
@@ -361,7 +361,7 @@ different things that happen to both look like version numbers.
 - **This SDK is currently at version `0.5.0`.** Package versions are set entirely by git tags on
   this repository; nothing is hardcoded in `composer.json`.
 - It is built against, and verified compatible with, adsefid.com Web Service API doc version
-  **`v1.13.0`**. That pin is a compatibility statement, not this SDK's own version.
+  **`v1.14.0`**. That pin is a compatibility statement, not this SDK's own version.
 - This SDK's version bumps under normal semver rules, driven by changes to *this SDK*: a patch for
   a bugfix, a minor for a backward-compatible addition (e.g. a new endpoint or field), a major for
   a breaking change to this SDK's own API. The doc-version pin above only changes when someone
