@@ -113,6 +113,7 @@ final class ValidationTest extends TestCase
         self::assertSame(900, $limits['sms_message_max_length']);
         self::assertSame(4000, $limits['messenger_message_max_length']);
         self::assertSame(2000, $limits['combined_status_ids_max']);
+        self::assertSame(2000, $limits['combined_cancel_ids_max']);
         self::assertSame(1, $limits['receive_count_min']);
         self::assertSame(499, $limits['receive_count_max']);
         self::assertSame(1, $limits['templates_take_min']);
