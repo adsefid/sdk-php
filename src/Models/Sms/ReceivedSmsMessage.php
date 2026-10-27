@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Adsefid\Sdk\Models\Sms;
 
+use Adsefid\Sdk\Support\Wire;
+
 /**
  * One inbound SMS in a `GetReceivedSmsResponse`.
  */
@@ -23,10 +25,10 @@ final class ReceivedSmsMessage
     public static function fromArray(array $data): self
     {
         return new self(
-            message: (string) $data['message'],
-            lineNumber: (string) $data['line_number'],
-            receiveDate: new \DateTimeImmutable((string) $data['receive_date']),
-            sender: (string) $data['sender'],
+            message: Wire::string($data, 'message'),
+            lineNumber: Wire::string($data, 'line_number'),
+            receiveDate: Wire::date($data, 'receive_date'),
+            sender: Wire::string($data, 'sender'),
         );
     }
 

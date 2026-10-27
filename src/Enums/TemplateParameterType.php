@@ -7,9 +7,8 @@ namespace Adsefid\Sdk\Enums;
 /**
  * Complete publicly documented set is `string` and `number`.
  *
- * Note: the live server has been observed to also emit an undocumented
- * `url` case. It is intentionally NOT exposed here since it is not part
- * of the documented public contract; revisit if the doc is updated.
+ * A type this SDK does not know yet is kept as its raw string in
+ * `UserTemplateItem::$parameters` instead of being rejected.
  */
 enum TemplateParameterType: string
 {

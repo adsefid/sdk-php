@@ -301,4 +301,40 @@ final class WebhookVerifierTest extends TestCase
         self::assertSame('status', WebhookEventTypes::STATUS);
         self::assertSame('messenger.status', WebhookEventTypes::MESSENGER_STATUS);
     }
+
+    public function testAnEmptyKeyNeverVerifies(): void
+    {
+        $body = self::goldenBody();
+        $timestamp = WebhookSigner::now();
+        $signature = WebhookSigner::PREFIX . base64_encode(hash_hmac('sha256', $timestamp . '.' . $body, '', true));
+
+        $this->expectException(AdsefidWebhookVerificationException::class);
+        WebhookVerifier::fromKey('')->verifyAndParse($body, $signature, $timestamp);
+    }
+
+    public function testAnEmptySecretStringIsRejected(): void
+    {
+        $this->expectException(AdsefidWebhookVerificationException::class);
+        new WebhookVerifier('');
+    }
+
+    #[DataProvider('malformedSignatureProvider')]
+    public function testAMalformedSignatureIsAVerificationFailure(string $signature): void
+    {
+        $verifier = new WebhookVerifier(self::vector()['secret']);
+
+        $this->expectException(AdsefidWebhookVerificationException::class);
+        $verifier->verifyAndParse(self::goldenBody(), $signature, WebhookSigner::now());
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function malformedSignatureProvider(): iterable
+    {
+        yield 'non-ascii' => ['v1=é'];
+        yield 'not base64' => ['v1=!!!!'];
+        yield 'too short' => ['v1=AAAA'];
+        yield 'empty' => ['v1='];
+    }
 }

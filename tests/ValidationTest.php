@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Adsefid\Sdk\Tests;
 
 use Adsefid\Sdk\Exceptions\AdsefidValidationException;
-use Adsefid\Sdk\Support\LocalIdValidator;
+use Adsefid\Sdk\Support\Validator;
 use Adsefid\Sdk\Support\TemplateParameters;
 use Adsefid\Sdk\Tests\Support\Fixtures;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -37,19 +37,19 @@ final class ValidationTest extends TestCase
             $this->expectException(AdsefidValidationException::class);
         }
 
-        LocalIdValidator::validate($value);
+        Validator::validate($value);
     }
 
     public function testANullLocalIdIsNotSupplied(): void
     {
         $this->expectNotToPerformAssertions();
-        LocalIdValidator::validate(null);
+        Validator::validate(null);
     }
 
     public function testTheFieldNameReachesTheException(): void
     {
         try {
-            LocalIdValidator::validate('-bad', 'receptors[0].local_id');
+            Validator::validate('-bad', 'receptors[0].local_id');
             self::fail('expected a validation exception');
         } catch (AdsefidValidationException $exception) {
             self::assertStringContainsString('receptors[0].local_id', $exception->getMessage());
@@ -76,7 +76,7 @@ final class ValidationTest extends TestCase
     #[DataProvider('utf16LengthProvider')]
     public function testUtf16Length(string $value, int $expected): void
     {
-        self::assertSame($expected, LocalIdValidator::utf16Length($value));
+        self::assertSame($expected, Validator::utf16Length($value));
     }
 
     /**
@@ -102,7 +102,7 @@ final class ValidationTest extends TestCase
             $this->expectNotToPerformAssertions();
         }
 
-        LocalIdValidator::maxLength($value, 900, 'message');
+        Validator::maxLength($value, 900, 'message');
     }
 
     public function testTheSharedLimitsTableMatchesWhatThisSdkEnforces(): void
@@ -123,52 +123,52 @@ final class ValidationTest extends TestCase
 
     public function testRequireNonEmpty(): void
     {
-        self::assertSame('x', LocalIdValidator::requireNonEmpty('x', 'field'));
+        self::assertSame('x', Validator::requireNonEmpty('x', 'field'));
 
         $this->expectException(AdsefidValidationException::class);
-        LocalIdValidator::requireNonEmpty('', 'field');
+        Validator::requireNonEmpty('', 'field');
     }
 
     public function testRequireNonEmptyArray(): void
     {
-        LocalIdValidator::requireNonEmptyArray(['a'], 'field');
+        Validator::requireNonEmptyArray(['a'], 'field');
 
         $this->expectException(AdsefidValidationException::class);
-        LocalIdValidator::requireNonEmptyArray([], 'field');
+        Validator::requireNonEmptyArray([], 'field');
     }
 
     public function testMaxCountIsInclusive(): void
     {
-        LocalIdValidator::maxCount(2000, 2000, 'ids');
+        Validator::maxCount(2000, 2000, 'ids');
 
         $this->expectException(AdsefidValidationException::class);
-        LocalIdValidator::maxCount(2001, 2000, 'ids');
+        Validator::maxCount(2001, 2000, 'ids');
     }
 
     public function testIntRangeAcceptsTheInclusiveBounds(): void
     {
         $this->expectNotToPerformAssertions();
         foreach ([1, 250, 499] as $value) {
-            LocalIdValidator::intRange($value, 1, 499, 'count');
+            Validator::intRange($value, 1, 499, 'count');
         }
     }
 
     public function testIntRangeRejectsOutsideTheBounds(): void
     {
         $this->expectException(AdsefidValidationException::class);
-        LocalIdValidator::intRange(500, 1, 499, 'count');
+        Validator::intRange(500, 1, 499, 'count');
     }
 
     public function testRequireAtLeastOneAcceptsAnyPopulatedList(): void
     {
         $this->expectNotToPerformAssertions();
-        LocalIdValidator::requireAtLeastOne([['a'], null], ['message_ids', 'local_ids']);
+        Validator::requireAtLeastOne([['a'], null], ['message_ids', 'local_ids']);
     }
 
     public function testRequireAtLeastOneRejectsWhenEveryListIsEmpty(): void
     {
         $this->expectException(AdsefidValidationException::class);
-        LocalIdValidator::requireAtLeastOne([null, []], ['message_ids', 'local_ids']);
+        Validator::requireAtLeastOne([null, []], ['message_ids', 'local_ids']);
     }
 
     /**

@@ -7,6 +7,7 @@ namespace Adsefid\Sdk\Models\Sms;
 use Adsefid\Sdk\Enums\LineSelector;
 use Adsefid\Sdk\Enums\WebServiceMessageStatus;
 use Adsefid\Sdk\Support\WebServiceCode;
+use Adsefid\Sdk\Support\Wire;
 
 /**
  * `statusCode` is the raw status; `status` is its typed view and is `null`
@@ -21,7 +22,7 @@ final class SendSingleSmsResponse
         public readonly int $statusCode,
         public readonly ?WebServiceMessageStatus $status,
         public readonly string $lineNumber,
-        public readonly ?LineSelector $lineSelector,
+        public readonly LineSelector|int|null $lineSelector,
         public readonly float $cost,
         public readonly string $receptor,
         public readonly ?\DateTimeImmutable $sendTime,
@@ -37,18 +38,18 @@ final class SendSingleSmsResponse
     public static function fromArray(array $data): self
     {
         return new self(
-            groupId: (string) $data['group_id'],
-            localId: isset($data['local_id']) ? (string) $data['local_id'] : null,
-            statusCode: (int) $data['status'],
-            status: WebServiceCode::messageStatus((int) $data['status']),
-            lineNumber: (string) $data['line_number'],
-            lineSelector: isset($data['line_selector']) ? LineSelector::from((int) $data['line_selector']) : null,
-            cost: (float) $data['cost'],
-            receptor: (string) $data['receptor'],
-            sendTime: isset($data['send_time']) ? new \DateTimeImmutable((string) $data['send_time']) : null,
-            messageId: (string) $data['message_id'],
-            segmentCount: (int) $data['segment_count'],
-            hide: (bool) $data['hide'],
+            groupId: Wire::string($data, 'group_id'),
+            localId: isset($data['local_id']) ? Wire::string($data, 'local_id') : null,
+            statusCode: Wire::int($data, 'status'),
+            status: WebServiceCode::messageStatus(Wire::int($data, 'status')),
+            lineNumber: Wire::string($data, 'line_number'),
+            lineSelector: Wire::lineSelector($data, 'line_selector'),
+            cost: Wire::float($data, 'cost'),
+            receptor: Wire::string($data, 'receptor'),
+            sendTime: Wire::nullableDate($data, 'send_time'),
+            messageId: Wire::string($data, 'message_id'),
+            segmentCount: Wire::int($data, 'segment_count'),
+            hide: Wire::bool($data, 'hide'),
         );
     }
 
@@ -62,7 +63,7 @@ final class SendSingleSmsResponse
             'local_id' => $this->localId,
             'status' => $this->statusCode,
             'line_number' => $this->lineNumber,
-            'line_selector' => $this->lineSelector?->value,
+            'line_selector' => Wire::value($this->lineSelector),
             'cost' => $this->cost,
             'receptor' => $this->receptor,
             'send_time' => $this->sendTime?->format(DATE_ATOM),

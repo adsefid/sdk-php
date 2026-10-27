@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Adsefid\Sdk\Models\Messenger;
 
 use Adsefid\Sdk\Exceptions\AdsefidValidationException;
-use Adsefid\Sdk\Support\LocalIdValidator;
+use Adsefid\Sdk\Support\Validator;
 use Adsefid\Sdk\Support\TemplateParameters;
 
 final class SendTemplateMessengerRequest
@@ -23,10 +23,10 @@ final class SendTemplateMessengerRequest
         public readonly ?string $localId = null,
         public readonly ?\DateTimeImmutable $expiryDate = null,
     ) {
-        LocalIdValidator::requireNonEmpty($this->templateId, 'template_id');
-        LocalIdValidator::requireNonEmpty($this->receptor, 'receptor');
-        LocalIdValidator::requireNonEmpty($this->profile, 'profile');
-        LocalIdValidator::validate($this->localId, 'local_id');
+        Validator::requireNonEmpty($this->templateId, 'template_id');
+        Validator::requireNonEmpty($this->receptor, 'receptor');
+        Validator::requireNonEmpty($this->profile, 'profile');
+        Validator::validate($this->localId, 'local_id');
         TemplateParameters::validate($this->parameters);
     }
 
@@ -37,7 +37,8 @@ final class SendTemplateMessengerRequest
     {
         $data = [
             'template_id' => $this->templateId,
-            'parameters' => $this->parameters,
+            // An empty PHP array would encode as a JSON array, which the service rejects.
+            'parameters' => $this->parameters === [] ? new \stdClass() : $this->parameters,
             'receptor' => $this->receptor,
             'profile' => $this->profile,
         ];

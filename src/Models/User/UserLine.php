@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Adsefid\Sdk\Models\User;
 
 use Adsefid\Sdk\Enums\LineSelector;
+use Adsefid\Sdk\Support\Wire;
 
 final class UserLine
 {
     public function __construct(
         public readonly string $lineNumber,
-        public readonly LineSelector $lineSelector,
+        public readonly LineSelector|int $lineSelector,
         public readonly string $lineName,
         public readonly bool $enabled,
     ) {
@@ -22,10 +23,10 @@ final class UserLine
     public static function fromArray(array $data): self
     {
         return new self(
-            lineNumber: (string) $data['line_number'],
-            lineSelector: LineSelector::from((int) $data['line_selector']),
-            lineName: (string) $data['line_name'],
-            enabled: (bool) $data['enabled'],
+            lineNumber: Wire::string($data, 'line_number'),
+            lineSelector: Wire::requiredLineSelector($data, 'line_selector'),
+            lineName: Wire::string($data, 'line_name'),
+            enabled: Wire::bool($data, 'enabled'),
         );
     }
 
@@ -36,7 +37,7 @@ final class UserLine
     {
         return [
             'line_number' => $this->lineNumber,
-            'line_selector' => $this->lineSelector->value,
+            'line_selector' => Wire::value($this->lineSelector),
             'line_name' => $this->lineName,
             'enabled' => $this->enabled,
         ];

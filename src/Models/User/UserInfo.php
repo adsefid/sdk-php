@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace Adsefid\Sdk\Models\User;
 
+use Adsefid\Sdk\Support\Wire;
+
 final class UserInfo
 {
     public function __construct(
         public readonly string $name,
-        public readonly string $companyName,
+        public readonly ?string $companyName,
         public readonly float $creditLeft,
-        public readonly string $email,
-        public readonly string $phone,
+        public readonly ?string $email,
+        public readonly ?string $phone,
         public readonly string $accountStatus,
     ) {
     }
@@ -22,12 +24,12 @@ final class UserInfo
     public static function fromArray(array $data): self
     {
         return new self(
-            name: (string) $data['name'],
-            companyName: (string) $data['company_name'],
-            creditLeft: (float) $data['credit_left'],
-            email: (string) $data['email'],
-            phone: (string) $data['phone'],
-            accountStatus: (string) $data['account_status'],
+            name: Wire::string($data, 'name'),
+            companyName: isset($data['company_name']) ? Wire::string($data, 'company_name') : null,
+            creditLeft: Wire::float($data, 'credit_left'),
+            email: isset($data['email']) ? Wire::string($data, 'email') : null,
+            phone: isset($data['phone']) ? Wire::string($data, 'phone') : null,
+            accountStatus: Wire::string($data, 'account_status'),
         );
     }
 

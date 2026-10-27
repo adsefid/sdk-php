@@ -6,7 +6,7 @@ namespace Adsefid\Sdk\Models\Sms;
 
 use Adsefid\Sdk\Enums\LineSelector;
 use Adsefid\Sdk\Exceptions\AdsefidValidationException;
-use Adsefid\Sdk\Support\LocalIdValidator;
+use Adsefid\Sdk\Support\Validator;
 
 final class SendP2PSmsRequest
 {
@@ -21,8 +21,8 @@ final class SendP2PSmsRequest
         public readonly ?LineSelector $lineSelector = null,
         public readonly ?\DateTimeImmutable $sendTime = null,
     ) {
-        LocalIdValidator::requireNonEmptyArray($this->messages, 'messages');
-        LocalIdValidator::requireNonEmpty($this->lineNumber, 'line_number');
+        Validator::requireNonEmptyArray($this->messages, 'messages');
+        Validator::requireNonEmpty($this->lineNumber, 'line_number');
     }
 
     /**

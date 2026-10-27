@@ -264,4 +264,71 @@ final class SmsResourceTest extends TestCase
         $request = new GetReceivedSmsRequest('3000xxxx', $count);
         self::assertSame($count, $request->count);
     }
+
+    public function testAnEmptyTemplateParameterMapIsSentAsAJsonObject(): void
+    {
+        [$client, $http] = TestClient::respondingWithFixture('envelopes/sms.send_template.success.json');
+
+        $client->sms->sendTemplate(new SendTemplateSmsRequest(
+            templateId: 'test',
+            parameters: [],
+            receptor: '989120000000',
+            lineNumber: '983000',
+        ));
+
+        self::assertStringContainsString('"parameters":{}', (string) $http->only()->getBody());
+    }
+
+    /**
+     * @return iterable<string, array{int, bool}>
+     */
+    public static function statusLookupSizeProvider(): iterable
+    {
+        yield 'fits the 8000 character budget' => [210, true];
+        yield 'over the budget' => [230, false];
+        yield 'documented maximum' => [2000, false];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('statusLookupSizeProvider')]
+    public function testAStatusLookupThatCannotFitInAUrlIsRefusedLocally(int $count, bool $accepted): void
+    {
+        [$client, $http] = TestClient::respondingWith('{"status":"success","data":{"receptors":[]}}');
+        $ids = [];
+        for ($i = 0; $i < $count; ++$i) {
+            $ids[] = sprintf('0195ff8c-55aa-7e74-a337-%012d', $i);
+        }
+
+        if ($accepted) {
+            $client->sms->getStatus(new GetSmsStatusRequest(messageIds: $ids));
+            $query = $http->only()->getUri()->getQuery();
+            self::assertStringNotContainsString('%2C', $query);
+            self::assertStringContainsString(',', $query);
+
+            return;
+        }
+
+        try {
+            $client->sms->getStatus(new GetSmsStatusRequest(messageIds: $ids));
+            self::fail('Expected a validation exception.');
+        } catch (AdsefidValidationException $e) {
+            self::assertStringContainsString('characters long', $e->getMessage());
+            self::assertSame(0, $http->count());
+        }
+    }
+
+    public function testStatusLookupDropsDuplicateIdsAndKeepsABaseUrlPath(): void
+    {
+        $http = new \Adsefid\Sdk\Tests\Support\RecordingHttpClient([TestClient::json(200, '{"status":"success","data":{"receptors":[]}}')]);
+        $factory = new \GuzzleHttp\Psr7\HttpFactory();
+        $client = new \Adsefid\Sdk\AdsefidClient(
+            new \Adsefid\Sdk\ClientConfig(apiKey: 'k', baseUrl: 'https://api.test/webservice/api/'),
+            $http,
+            $factory,
+            $factory,
+        );
+
+        $client->sms->getStatus(new GetSmsStatusRequest(localIds: ['a', 'b', 'a']));
+
+        self::assertSame('https://api.test/webservice/api/v1/sms/status?local_ids=a,b', (string) $http->only()->getUri());
+    }
 }

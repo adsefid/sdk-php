@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Adsefid\Sdk\Models\Messenger;
 
+use Adsefid\Sdk\Support\Wire;
+
 final class UploadMessengerFileResponse
 {
     public function __construct(
@@ -17,7 +19,7 @@ final class UploadMessengerFileResponse
     public static function fromArray(array $data): self
     {
         return new self(
-            fileId: (string) $data['file_id'],
+            fileId: Wire::string($data, 'file_id'),
         );
     }
 

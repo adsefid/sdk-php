@@ -37,12 +37,22 @@ final class WebhookVerifier
         $this->key = $decoded;
     }
 
+    private static function assertKeyNotEmpty(string $key): void
+    {
+        // An empty HMAC key signs anything, so it must never verify.
+        if ($key === '') {
+            throw new AdsefidWebhookVerificationException('Webhook signing key is empty.');
+        }
+    }
+
     /**
      * Builds a verifier from an already-decoded signing key, skipping the
      * Base64 step. Use this when you store the decoded key yourself.
      */
     public static function fromKey(string $key): self
     {
+        self::assertKeyNotEmpty($key);
+
         // Round-tripping through the constructor keeps it the single place the
         // key is ever assigned, which readonly requires anyway.
         return new self(base64_encode($key));
@@ -95,9 +105,10 @@ final class WebhookVerifier
 
         $providedSignature = substr($signatureHeader, strlen(self::SIGNATURE_PREFIX));
         $signingInput = sprintf('%d.%s', $timestamp, $rawBody);
-        $expectedSignature = base64_encode(hash_hmac('sha256', $signingInput, $this->key, true));
+        $expectedDigest = hash_hmac('sha256', $signingInput, $this->key, true);
+        $providedDigest = base64_decode($providedSignature, true);
 
-        if (!hash_equals($expectedSignature, $providedSignature)) {
+        if ($providedDigest === false || !hash_equals($expectedDigest, $providedDigest)) {
             throw new AdsefidWebhookVerificationException('Webhook signature verification failed.');
         }
     }

@@ -6,6 +6,7 @@ namespace Adsefid\Sdk\Models\Common;
 
 use Adsefid\Sdk\Enums\WebServiceMessageStatus;
 use Adsefid\Sdk\Support\WebServiceCode;
+use Adsefid\Sdk\Support\Wire;
 
 /**
  * One message in a get-status response, for SMS and Messenger alike.
@@ -32,16 +33,16 @@ final class StatusReceptor
      */
     public static function fromArray(array $data): self
     {
-        $statusCode = (int) $data['status'];
+        $statusCode = Wire::int($data, 'status');
 
         return new self(
-            messageId: (string) $data['message_id'],
-            localId: isset($data['local_id']) ? (string) $data['local_id'] : null,
+            messageId: Wire::string($data, 'message_id'),
+            localId: isset($data['local_id']) ? Wire::string($data, 'local_id') : null,
             statusCode: $statusCode,
             status: WebServiceCode::messageStatus($statusCode),
-            receptor: (string) $data['receptor'],
-            sendTime: isset($data['send_time']) ? new \DateTimeImmutable((string) $data['send_time']) : null,
-            deliveryTime: isset($data['delivery_time']) ? new \DateTimeImmutable((string) $data['delivery_time']) : null,
+            receptor: Wire::string($data, 'receptor'),
+            sendTime: Wire::nullableDate($data, 'send_time'),
+            deliveryTime: Wire::nullableDate($data, 'delivery_time'),
         );
     }
 

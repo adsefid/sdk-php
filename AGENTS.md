@@ -11,10 +11,28 @@ The API surface (endpoints, field names, types, validation rules, enums, example
 A small number of facts below are empirically observed behaviors of the live API that are easy to get wrong from a literal reading of the documentation's prose or pseudo-code. Trust these notes over an ambiguous doc reading:
 
 - The response envelope's `error.details` uses the shared typed `ApiErrorDetails` shape: optional `errors` maps field names (or rejected cancel IDs) to `ApiFieldError`, and optional `items` carries indexed `ApiItemError` entries. Preserve unknown codes through `rawCode`.
+- `line_selector` is required when the account has two or more lines with the same number. Without
+  it the service answers `LINE_NOT_FOUND` (2002), even for a number the account owns.
+- GET requests are capped at 8,000 characters of path and query. The service's proxy answers an HTML
+  HTTP 414 above 8 KiB, so the documented 2,000-ID status lookup cannot be sent as one GET (about 200
+  IDs fit). The SDK joins IDs with literal commas, drops duplicates, and refuses an oversized GET
+  locally with its validation error. Cancel is a POST and is not affected.
+- Timestamps carry up to 7 fractional digits (`2026-09-19T11:43:10.4030292+03:30`) and mixed offsets;
+  parsers must accept both.
 - Bulk/P2P item validation happens in the API. Validate request-level fields locally, but send item values unchanged so valid siblings can still succeed.
 - Per-item `status` fields in bulk/P2P send responses are a `WebServiceCode` (doc §3.3), not a pure `WebServiceMessageStatus` — a value can legitimately be `2000+` (an error code for that one recipient, e.g. `2025 RECEPTOR_BLACKLISTED`) even though the overall response is `status: "success"`. This is why the per-item value objects (`BulkSmsReceptorResult`, `P2PSmsMessageResult`, `BulkMessengerReceptorResult`, `P2PMessengerReceptorResult`) carry `statusCode` (raw int) plus nullable `messageStatus`/`errorCode` views (split by `Support\WebServiceCode`) rather than a single hard-mapped enum. Every other status field (`SendSingle*Response`, `SendTemplate*Response`, `Common\StatusReceptor`, `Common\CancelledMessage`, `Webhooks\StatusUpdateItem`) is parsed the same way: raw int plus a nullable `WebServiceMessageStatus`, never `WebServiceMessageStatus::from()`, so an unknown future code cannot throw a raw `\ValueError` out of a decode. This was caught by decoding the doc's own §4.2/§4.3 examples — always decode the doc's literal example JSON when adding a new endpoint, not just synthetic values in range.
 - Webhook signatures are plain Base64, not hex-then-Base64. The signature is HMAC-SHA256 over the literal string `"{timestamp}.{raw_body}"`, and the raw digest bytes are Base64-encoded directly (`base64_encode(hash_hmac('sha256', $input, $secret, true))`) — there is no intermediate hex-encoding step, even though a literal reading of some spec pseudo-code can suggest one. The header value is `"v1=" + base64signature`; compare with `hash_equals()`. See `src/Webhooks/WebhookVerifier.php`.
-- `TemplateParameterType` has an undocumented third value in the wild. The documented, supported public set is `{string, number}`. The live API has been observed to also emit a `url` value for some templates; this SDK intentionally models only the two documented values — do not add support for it without first confirming it against current, documented API behavior. See `src/Enums/TemplateParameterType.php`.
+- Only documented values get enum cases; unknown `LineSelector`, `TemplateState` and `TemplateParameterType` wire values
+  are kept as the raw `int`/`string` (`Support\Wire`, `tryFrom() ?? raw`), never dropped or thrown on.
+  Add a case only for a value the documentation lists. See `src/Enums/TemplateParameterType.php`.
+- Response fields are read through `Support\Wire`, so a missing or mistyped field is an
+  `AdsefidTransportException` rather than a PHP warning; `Transport::map()`/`mapList()` also turn any
+  stray `\Throwable` into one. A non-2xx without an error envelope is an `AdsefidApiException`
+  (`rawCode` -1, `UNKNOWN_ERROR`); any 429 is an `AdsefidRateLimitException` (bare 429: 2036,
+  `RATE_LIMITED`).
+- An empty webhook key never verifies, and signatures are compared as decoded digest bytes.
+- Uploads are capped at `MultipartStreamBuilder::MAX_FILE_BYTES` (15 MiB). `Transport`,
+  `MultipartStreamBuilder`, `Validator` and `Wire` are `@internal`.
 
 ## Architecture map
 
@@ -24,9 +42,8 @@ src/
 ├── ClientConfig.php               apiKey + baseUrl
 ├── Http/
 │   ├── Transport.php              PSR-18 request building + envelope decoding + exception mapping
-│   ├── MultipartStreamBuilder.php Hand-rolled multipart/form-data body builder (no PSR helper exists for this)
-│   └── CsvJoiner.php              array -> CSV query param helper
-├── Support/LocalIdValidator.php   All client-side pre-flight validation (local_id regex, length, count, range checks)
+│   └── MultipartStreamBuilder.php Hand-rolled multipart/form-data body builder (no PSR helper exists for this)
+├── Support/Validator.php           All client-side pre-flight validation (local_id regex, length, count, range checks)
 ├── Support/WebServiceCode.php     Range split of a raw WebServiceCode into WebServiceMessageStatus / WebServiceResponseCode
 ├── Exceptions/                    AdsefidException hierarchy (see README's error-handling section)
 ├── Enums/                         5 native backed enums: LineSelector, WebServiceMessageStatus, WebServiceResponseCode, TemplateState, TemplateParameterType
@@ -47,11 +64,11 @@ src/
 ## Adding a new endpoint
 
 1. Read the relevant section of the pinned doc in full, including its literal example JSON — decode that exact JSON in a scratch script before writing the DTO, not just a value you invented that happens to fit the documented type.
-2. Create the request DTO under `src/Models/<Area>/<Name>Request.php` (or `<Name>Request.php` for a query-string GET) — constructor does all client-side validation via `Support/LocalIdValidator.php` (add a new helper there if the doc states a new fast-fail rule), and a `toArray()` (or `toQuery()`) method.
+2. Create the request DTO under `src/Models/<Area>/<Name>Request.php` (or `<Name>Request.php` for a query-string GET) — constructor does all client-side validation via `Support/Validator.php` (add a new helper there if the doc states a new fast-fail rule), and a `toArray()` (or `toQuery()`) method.
 3. Create the response DTO under `src/Models/<Area>/<Name>Response.php` — a static `fromArray()` factory and a `toArray()` method, hand-mapping every documented field.
 4. **PHP requires one class per file — never combine a request and response into the same file, and never combine two operations' DTOs into one file, even if they're nearly identical.**
 5. Add one method to the matching `src/Resources/<Area>Resource.php` that wires the DTO pair to the right HTTP verb/path on `Transport`.
-6. If the endpoint returns a top-level JSON array (like `/v1/user/lines`), check how `Transport::decodeEnvelope()` and `UserResource::extractList()` already handle that shape before assuming you need new plumbing.
+6. If the endpoint returns a top-level JSON array (like `/v1/user/lines`), check how `Transport::decodeEnvelope()` and `Transport::mapList()` already handle that shape before assuming you need new plumbing.
 
 ## Hard rules
 
@@ -76,12 +93,12 @@ src/
   `WebhookVerifier::__construct` decodes it; `WebhookVerifier::fromKey()` takes raw key bytes.
   Keying the HMAC with the UTF-8 bytes of the Base64 string does not verify against the live
   service.
-- **Length limits count UTF-16 code units.** `LocalIdValidator::maxLength` uses
-  `LocalIdValidator::utf16Length`, not `mb_strlen`, because that is what the service counts: a
+- **Length limits count UTF-16 code units.** `Validator::maxLength` uses
+  `Validator::utf16Length`, not `mb_strlen`, because that is what the service counts: a
   non-BMP character (an emoji) is one code point but two UTF-16 code units.
 
 - **No reflection-based serialization.** Every DTO hand-writes its own `toArray()`/`fromArray()`. Do not introduce a mapper library, do not use PHP attributes for (de)serialization, do not use `ReflectionClass` to auto-map properties.
-- **No magic string/int literals.** A field's set of valid values belongs in one of the 5 enums, or in a named `private const` on the relevant class (see `LocalIdValidator::LOCAL_ID_PATTERN`, `SendSingleSmsRequest::MESSAGE_MAX_LENGTH`). Do not inline `900`, `4000`, `2000`, `500`, `100`, etc. a second time — reference or duplicate the named constant, don't retype the raw number.
+- **No magic string/int literals.** A field's set of valid values belongs in one of the 5 enums, or in a named `private const` on the relevant class (see `Validator::LOCAL_ID_PATTERN`, `SendSingleSmsRequest::MESSAGE_MAX_LENGTH`). Do not inline `900`, `4000`, `2000`, `500`, `100`, etc. a second time — reference or duplicate the named constant, don't retype the raw number.
 - **No narration comments.** PHPDoc `@param`/`@return` blocks on public API methods are expected (PHP/IDE convention) — that is not the same thing as a comment explaining what a line of code does. Only add a plain comment where a genuinely non-obvious constraint needs one (see the `readonly class` / typed-constant PHP-version notes already in the codebase).
 - **Throw, never a Result object.** Every resource method throws on non-success/non-2xx. A success response is always returned directly as its typed DTO — never wrap it in an `Ok`/`Err`-style envelope. Bulk/P2P partial-success responses (HTTP 200, `status: "success"`, mixed per-item outcomes) are normal typed returns, not exceptions — see the `WebServiceCode` note above.
 - **No retry logic in this SDK.** Every request is a single attempt; do not add a retry loop or retry configuration.

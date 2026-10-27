@@ -164,13 +164,32 @@ final class ErrorMappingTest extends TestCase
     {
         [$client] = TestClient::respondingWith(Fixtures::bytes('errors/error.not_json.txt'), 500);
 
-        $this->expectException(AdsefidApiException::class);
-        $client->user->getInfo();
+        try {
+            $client->user->getInfo();
+            self::fail('Expected an AdsefidApiException.');
+        } catch (AdsefidApiException $exception) {
+            self::assertNotInstanceOf(AdsefidRateLimitException::class, $exception);
+            self::assertSame(-1, $exception->rawCode);
+            self::assertSame('UNKNOWN_ERROR', $exception->name);
+        }
     }
 
     public function testABare429IsStillARateLimit(): void
     {
         [$client] = TestClient::respondingWith(Fixtures::bytes('errors/error.not_json.txt'), 429);
+
+        try {
+            $client->user->getInfo();
+            self::fail('Expected an AdsefidRateLimitException.');
+        } catch (AdsefidRateLimitException $exception) {
+            self::assertSame(2036, $exception->rawCode);
+            self::assertSame('RATE_LIMITED', $exception->name);
+        }
+    }
+
+    public function testAny429WithAnEnvelopeIsARateLimit(): void
+    {
+        [$client] = TestClient::respondingWith('{"status":"error","error":{"code":2024,"name":"INVALID_PARAMETER"}}', 429);
 
         $this->expectException(AdsefidRateLimitException::class);
         $client->user->getInfo();

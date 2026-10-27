@@ -27,7 +27,7 @@ final class UserResource
 
     public function getInfo(): UserInfo
     {
-        return UserInfo::fromArray($this->transport->get('/v1/user/info'));
+        return $this->transport->map(UserInfo::fromArray(...), $this->transport->get('/v1/user/info'));
     }
 
     /**
@@ -35,10 +35,7 @@ final class UserResource
      */
     public function getLines(): array
     {
-        $data = $this->transport->get('/v1/user/lines');
-        $lines = $this->extractList($data);
-
-        return array_map(static fn (array $line): UserLine => UserLine::fromArray($line), $lines);
+        return $this->transport->mapList(UserLine::fromArray(...), $this->transport->get('/v1/user/lines'));
     }
 
     /**
@@ -46,33 +43,11 @@ final class UserResource
      */
     public function getProfiles(): array
     {
-        $data = $this->transport->get('/v1/user/profiles');
-        $profiles = $this->extractList($data);
-
-        return array_map(static fn (array $profile): UserProfile => UserProfile::fromArray($profile), $profiles);
+        return $this->transport->mapList(UserProfile::fromArray(...), $this->transport->get('/v1/user/profiles'));
     }
 
     public function getTemplates(GetUserTemplatesRequest $request): GetUserTemplatesResponse
     {
-        return GetUserTemplatesResponse::fromArray($this->transport->get('/v1/user/templates', $request->toQuery()));
-    }
-
-    /**
-     * @param array<array-key, mixed> $data
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    private function extractList(array $data): array
-    {
-        // `data` for these endpoints is a top-level JSON array; Transport wraps
-        // it as `['data' => [...]]` when it cannot treat it as an object map.
-        if (array_is_list($data)) {
-            return array_map(
-                static fn (mixed $item): array => is_array($item) ? $item : [],
-                $data,
-            );
-        }
-
-        return is_array($data['data'] ?? null) ? $data['data'] : [];
+        return $this->transport->map(GetUserTemplatesResponse::fromArray(...), $this->transport->get('/v1/user/templates', $request->toQuery()));
     }
 }

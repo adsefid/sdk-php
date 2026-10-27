@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Adsefid\Sdk\Models\User;
 
+use Adsefid\Sdk\Support\Wire;
+
 final class UserProfile
 {
     public function __construct(
@@ -19,9 +21,9 @@ final class UserProfile
     public static function fromArray(array $data): self
     {
         return new self(
-            id: (string) $data['id'],
-            name: (string) $data['name'],
-            messenger: (string) $data['messenger'],
+            id: Wire::string($data, 'id'),
+            name: Wire::string($data, 'name'),
+            messenger: Wire::string($data, 'messenger'),
         );
     }
 

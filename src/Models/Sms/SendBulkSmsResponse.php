@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Adsefid\Sdk\Models\Sms;
 
 use Adsefid\Sdk\Enums\LineSelector;
+use Adsefid\Sdk\Support\Wire;
 
 final class SendBulkSmsResponse
 {
@@ -19,7 +20,7 @@ final class SendBulkSmsResponse
         public readonly int $segmentCount,
         public readonly ?\DateTimeImmutable $sendTime,
         public readonly string $lineNumber,
-        public readonly ?LineSelector $lineSelector,
+        public readonly LineSelector|int|null $lineSelector,
         public readonly array $counts,
         public readonly int $totalCount,
         public readonly float $totalCost,
@@ -38,19 +39,19 @@ final class SendBulkSmsResponse
         }
 
         return new self(
-            groupId: (string) $data['group_id'],
+            groupId: Wire::string($data, 'group_id'),
             receptors: array_map(
                 static fn (array $item): BulkSmsReceptorResult => BulkSmsReceptorResult::fromArray($item),
-                array_values((array) $data['receptors']),
+                array_values(Wire::array($data, 'receptors')),
             ),
-            message: (string) $data['message'],
-            segmentCount: (int) $data['segment_count'],
-            sendTime: isset($data['send_time']) ? new \DateTimeImmutable((string) $data['send_time']) : null,
-            lineNumber: (string) $data['line_number'],
-            lineSelector: isset($data['line_selector']) ? LineSelector::from((int) $data['line_selector']) : null,
+            message: Wire::string($data, 'message'),
+            segmentCount: Wire::int($data, 'segment_count'),
+            sendTime: Wire::nullableDate($data, 'send_time'),
+            lineNumber: Wire::string($data, 'line_number'),
+            lineSelector: Wire::lineSelector($data, 'line_selector'),
             counts: $counts,
-            totalCount: (int) $data['total_count'],
-            totalCost: (float) $data['total_cost'],
+            totalCount: Wire::int($data, 'total_count'),
+            totalCost: Wire::float($data, 'total_cost'),
         );
     }
 
@@ -72,7 +73,7 @@ final class SendBulkSmsResponse
             'segment_count' => $this->segmentCount,
             'send_time' => $this->sendTime?->format(DATE_ATOM),
             'line_number' => $this->lineNumber,
-            'line_selector' => $this->lineSelector?->value,
+            'line_selector' => Wire::value($this->lineSelector),
             'counts' => $counts,
             'total_count' => $this->totalCount,
             'total_cost' => $this->totalCost,

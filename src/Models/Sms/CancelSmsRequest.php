@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Adsefid\Sdk\Models\Sms;
 
 use Adsefid\Sdk\Exceptions\AdsefidValidationException;
-use Adsefid\Sdk\Support\LocalIdValidator;
+use Adsefid\Sdk\Support\Validator;
 
 final class CancelSmsRequest
 {
@@ -21,8 +21,8 @@ final class CancelSmsRequest
         public readonly array $messageIds = [],
         public readonly array $localIds = [],
     ) {
-        LocalIdValidator::requireAtLeastOne([$this->messageIds, $this->localIds], ['message_ids', 'local_ids']);
-        LocalIdValidator::maxCount(count(array_unique($this->messageIds)) + count(array_unique($this->localIds)), self::MAX_COMBINED_IDS, 'message_ids+local_ids');
+        Validator::requireAtLeastOne([$this->messageIds, $this->localIds], ['message_ids', 'local_ids']);
+        Validator::maxCount(count(array_unique($this->messageIds)) + count(array_unique($this->localIds)), self::MAX_COMBINED_IDS, 'message_ids+local_ids');
     }
 
     /**

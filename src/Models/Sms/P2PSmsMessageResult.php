@@ -7,6 +7,7 @@ namespace Adsefid\Sdk\Models\Sms;
 use Adsefid\Sdk\Enums\WebServiceMessageStatus;
 use Adsefid\Sdk\Enums\WebServiceResponseCode;
 use Adsefid\Sdk\Support\WebServiceCode;
+use Adsefid\Sdk\Support\Wire;
 
 /**
  * The outcome for one message of a P2P SMS send (`SendP2PSmsResponse::$messages`).
@@ -37,19 +38,19 @@ final class P2PSmsMessageResult
      */
     public static function fromArray(array $data): self
     {
-        $statusCode = (int) $data['status'];
+        $statusCode = Wire::int($data, 'status');
 
         return new self(
-            messageId: isset($data['message_id']) ? (string) $data['message_id'] : null,
-            receptor: (string) $data['receptor'],
+            messageId: isset($data['message_id']) ? Wire::string($data, 'message_id') : null,
+            receptor: Wire::string($data, 'receptor'),
             statusCode: $statusCode,
             messageStatus: WebServiceCode::messageStatus($statusCode),
             errorCode: WebServiceCode::errorCode($statusCode),
-            message: (string) $data['message'],
-            segmentCount: (int) $data['segment_count'],
-            localId: isset($data['local_id']) ? (string) $data['local_id'] : null,
-            hide: (bool) $data['hide'],
-            cost: (float) $data['cost'],
+            message: Wire::string($data, 'message'),
+            segmentCount: Wire::int($data, 'segment_count'),
+            localId: isset($data['local_id']) ? Wire::string($data, 'local_id') : null,
+            hide: Wire::bool($data, 'hide'),
+            cost: Wire::float($data, 'cost'),
         );
     }
 

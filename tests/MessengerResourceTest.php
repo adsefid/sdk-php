@@ -201,4 +201,33 @@ final class MessengerResourceTest extends TestCase
         $this->expectException(AdsefidValidationException::class);
         $build();
     }
+
+    public function testUploadFileRejectsContentAbove15MiB(): void
+    {
+        [$client, $http] = TestClient::respondingWithFixture('envelopes/messenger.upload_file.success.json');
+        $stream = fopen('php://memory', 'r+');
+        self::assertIsResource($stream);
+        fwrite($stream, str_repeat("\0", MultipartStreamBuilder::MAX_FILE_BYTES + 1));
+        rewind($stream);
+
+        try {
+            $client->messenger->uploadFile(new UploadMessengerFileRequest($stream, 'a.mp4', 'video/mp4'));
+            self::fail('Expected a validation exception.');
+        } catch (AdsefidValidationException) {
+            self::assertSame(0, $http->count());
+        }
+    }
+
+    public function testUploadFileAcceptsExactly15MiB(): void
+    {
+        [$client] = TestClient::respondingWithFixture('envelopes/messenger.upload_file.success.json');
+        $stream = fopen('php://memory', 'r+');
+        self::assertIsResource($stream);
+        fwrite($stream, str_repeat("\0", MultipartStreamBuilder::MAX_FILE_BYTES));
+        rewind($stream);
+
+        $result = $client->messenger->uploadFile(new UploadMessengerFileRequest($stream, 'a.mp4', 'video/mp4'));
+
+        self::assertNotSame('', $result->fileId);
+    }
 }

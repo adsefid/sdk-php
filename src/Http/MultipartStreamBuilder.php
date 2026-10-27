@@ -9,8 +9,14 @@ use Adsefid\Sdk\Exceptions\AdsefidValidationException;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\StreamInterface;
 
+/**
+ * @internal
+ */
 final class MultipartStreamBuilder
 {
+    /** Largest file content the service accepts: 15 MiB, inclusive. Multipart framing is not counted. */
+    public const MAX_FILE_BYTES = 15 * 1024 * 1024;
+
     private readonly string $boundary;
 
     public function __construct(
@@ -54,16 +60,19 @@ final class MultipartStreamBuilder
             $contentType,
         );
 
-        $content = stream_get_contents($resource);
+        $content = stream_get_contents($resource, self::MAX_FILE_BYTES + 1);
 
         if ($content === false) {
             throw new AdsefidTransportException('Failed to read the file stream for multipart upload.');
         }
 
-        $parts[] = $content;
-        $parts[] = sprintf("\r\n--%s--\r\n", $this->boundary);
+        if (strlen($content) > self::MAX_FILE_BYTES) {
+            throw new AdsefidValidationException(sprintf('The file content must be at most %d bytes (15 MiB).', self::MAX_FILE_BYTES), 'stream');
+        }
 
-        return $this->streamFactory->createStream(implode('', $parts));
+        return $this->streamFactory->createStream(
+            $parts[0] . $content . sprintf("\r\n--%s--\r\n", $this->boundary),
+        );
     }
 
     private static function escapeQuotedHeaderValue(string $value, string $name): string

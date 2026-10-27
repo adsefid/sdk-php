@@ -6,6 +6,7 @@ namespace Adsefid\Sdk\Models\Common;
 
 use Adsefid\Sdk\Enums\WebServiceMessageStatus;
 use Adsefid\Sdk\Support\WebServiceCode;
+use Adsefid\Sdk\Support\Wire;
 
 /**
  * One entry of a cancel response's `cancelled_messages` or `failed_to_cancel`
@@ -27,11 +28,11 @@ final class CancelledMessage
      */
     public static function fromArray(array $data): self
     {
-        $statusCode = (int) $data['status'];
+        $statusCode = Wire::int($data, 'status');
 
         return new self(
-            messageId: (string) $data['message_id'],
-            localId: isset($data['local_id']) ? (string) $data['local_id'] : null,
+            messageId: Wire::string($data, 'message_id'),
+            localId: isset($data['local_id']) ? Wire::string($data, 'local_id') : null,
             statusCode: $statusCode,
             status: WebServiceCode::messageStatus($statusCode),
         );

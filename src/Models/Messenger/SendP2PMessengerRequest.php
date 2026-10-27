@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Adsefid\Sdk\Models\Messenger;
 
 use Adsefid\Sdk\Exceptions\AdsefidValidationException;
-use Adsefid\Sdk\Support\LocalIdValidator;
+use Adsefid\Sdk\Support\Validator;
 
 final class SendP2PMessengerRequest
 {
@@ -20,8 +20,8 @@ final class SendP2PMessengerRequest
         public readonly ?string $fileId = null,
         public readonly ?\DateTimeImmutable $sendTime = null,
     ) {
-        LocalIdValidator::requireNonEmptyArray($this->receptors, 'receptors');
-        LocalIdValidator::requireNonEmpty($this->profile, 'profile');
+        Validator::requireNonEmptyArray($this->receptors, 'receptors');
+        Validator::requireNonEmpty($this->profile, 'profile');
     }
 
     /**

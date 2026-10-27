@@ -14,18 +14,38 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: "8.2"
+            dependencies: highest
+          - php: "8.2"
+            dependencies: lowest
+          - php: "8.5"
+            dependencies: highest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.2"
+          php-version: ${{ matrix.php }}
           coverage: none
 
-      - run: make deps
+      - if: matrix.dependencies == 'highest'
+        run: make deps
+      - if: matrix.dependencies == 'lowest'
+        run: composer update --prefer-lowest --prefer-stable --no-interaction
       - run: make lint
       - run: make build
       - run: make test
+
+  # Stable check name for branch protection, regardless of the matrix.
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "all matrix jobs passed"
