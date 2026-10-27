@@ -8,7 +8,7 @@
  * checks before making the request.
  *
  * Usage:
- *     ADSEFID_API_KEY=... ADSEFID_LINE_NUMBER=983000XXX php examples/status-and-cancel.php
+ *     ADSEFID_API_KEY=... ADSEFID_LINE_NUMBER=983000 ADSEFID_LINE_SELECTOR=BulkServiceSendBased php examples/status-and-cancel.php
  */
 
 declare(strict_types=1);
@@ -16,6 +16,7 @@ declare(strict_types=1);
 require __DIR__ . '/../vendor/autoload.php';
 
 use Adsefid\Sdk\AdsefidClient;
+use Adsefid\Sdk\Enums\LineSelector;
 use Adsefid\Sdk\ClientConfig;
 use Adsefid\Sdk\Exceptions\AdsefidException;
 use Adsefid\Sdk\Models\Sms\CancelSmsRequest;
@@ -26,6 +27,8 @@ use GuzzleHttp\Client as GuzzleClient;
 
 $apiKey = getenv('ADSEFID_API_KEY');
 $lineNumber = getenv('ADSEFID_LINE_NUMBER');
+// Needed when the number has several lines; the value is a LineSelector case name.
+$lineSelector = getenv('ADSEFID_LINE_SELECTOR') !== false ? constant(LineSelector::class . '::' . getenv('ADSEFID_LINE_SELECTOR')) : null;
 if ($apiKey === false || $lineNumber === false) {
     fwrite(STDERR, "set ADSEFID_API_KEY and ADSEFID_LINE_NUMBER\n");
     exit(1);
@@ -39,6 +42,7 @@ try {
     $sent = $client->sms->sendSingle(new SendSingleSmsRequest(
         receptor: '09120000000',
         lineNumber: $lineNumber,
+        lineSelector: $lineSelector,
         message: 'This one is scheduled, and about to be cancelled.',
         sendTime: $sendTime,
         localId: 'demo-cancel-1',

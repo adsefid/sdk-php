@@ -36,36 +36,36 @@ final class SmsResource
 
     public function sendSingle(SendSingleSmsRequest $request): SendSingleSmsResponse
     {
-        return SendSingleSmsResponse::fromArray($this->transport->post('/v1/sms/single', $request->toArray()));
+        return $this->transport->map(SendSingleSmsResponse::fromArray(...), $this->transport->post('/v1/sms/single', $request->toArray()));
     }
 
     public function sendBulk(SendBulkSmsRequest $request): SendBulkSmsResponse
     {
-        return SendBulkSmsResponse::fromArray($this->transport->post('/v1/sms/bulk', $request->toArray()));
+        return $this->transport->map(SendBulkSmsResponse::fromArray(...), $this->transport->post('/v1/sms/bulk', $request->toArray()));
     }
 
     public function sendP2P(SendP2PSmsRequest $request): SendP2PSmsResponse
     {
-        return SendP2PSmsResponse::fromArray($this->transport->post('/v1/sms/p2p', $request->toArray()));
+        return $this->transport->map(SendP2PSmsResponse::fromArray(...), $this->transport->post('/v1/sms/p2p', $request->toArray()));
     }
 
     public function sendTemplate(SendTemplateSmsRequest $request): SendTemplateSmsResponse
     {
-        return SendTemplateSmsResponse::fromArray($this->transport->post('/v1/sms/template', $request->toArray()));
+        return $this->transport->map(SendTemplateSmsResponse::fromArray(...), $this->transport->post('/v1/sms/template', $request->toArray()));
     }
 
     public function getStatus(GetSmsStatusRequest $request): GetSmsStatusResponse
     {
-        return GetSmsStatusResponse::fromArray($this->transport->get('/v1/sms/status', $request->toQuery()));
+        return $this->transport->map(GetSmsStatusResponse::fromArray(...), $this->transport->get('/v1/sms/status', $request->toQuery()));
     }
 
     public function cancel(CancelSmsRequest $request): CancelSmsResponse
     {
-        return CancelSmsResponse::fromArray($this->transport->post('/v1/sms/cancel', $request->toArray()));
+        return $this->transport->map(CancelSmsResponse::fromArray(...), $this->transport->post('/v1/sms/cancel', $request->toArray()));
     }
 
     public function getReceived(GetReceivedSmsRequest $request): GetReceivedSmsResponse
     {
-        return GetReceivedSmsResponse::fromArray($this->transport->get('/v1/sms/receive', $request->toQuery()));
+        return $this->transport->map(GetReceivedSmsResponse::fromArray(...), $this->transport->get('/v1/sms/receive', $request->toQuery()));
     }
 }

@@ -6,7 +6,10 @@ namespace Adsefid\Sdk\Support;
 
 use Adsefid\Sdk\Exceptions\AdsefidValidationException;
 
-final class LocalIdValidator
+/**
+ * @internal
+ */
+final class Validator
 {
     // Note: kept untyped (not `private const string ...`) because typed class
     // constants require PHP 8.3, and this SDK targets PHP 8.2+.

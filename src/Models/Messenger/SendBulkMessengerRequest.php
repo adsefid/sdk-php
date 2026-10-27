@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Adsefid\Sdk\Models\Messenger;
 
 use Adsefid\Sdk\Exceptions\AdsefidValidationException;
-use Adsefid\Sdk\Support\LocalIdValidator;
+use Adsefid\Sdk\Support\Validator;
 
 final class SendBulkMessengerRequest
 {
@@ -23,10 +23,10 @@ final class SendBulkMessengerRequest
         public readonly ?string $fileId = null,
         public readonly ?\DateTimeImmutable $sendTime = null,
     ) {
-        LocalIdValidator::requireNonEmptyArray($this->receptors, 'receptors');
-        LocalIdValidator::requireNonEmpty($this->message, 'message');
-        LocalIdValidator::maxLength($this->message, self::MESSAGE_MAX_LENGTH, 'message');
-        LocalIdValidator::requireNonEmpty($this->profile, 'profile');
+        Validator::requireNonEmptyArray($this->receptors, 'receptors');
+        Validator::requireNonEmpty($this->message, 'message');
+        Validator::maxLength($this->message, self::MESSAGE_MAX_LENGTH, 'message');
+        Validator::requireNonEmpty($this->profile, 'profile');
     }
 
     /**

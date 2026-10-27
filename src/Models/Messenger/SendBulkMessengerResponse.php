@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Adsefid\Sdk\Models\Messenger;
 
+use Adsefid\Sdk\Support\Wire;
+
 final class SendBulkMessengerResponse
 {
     /**
@@ -35,18 +37,18 @@ final class SendBulkMessengerResponse
         }
 
         return new self(
-            groupId: (string) $data['group_id'],
+            groupId: Wire::string($data, 'group_id'),
             receptors: array_map(
                 static fn (array $item): BulkMessengerReceptorResult => BulkMessengerReceptorResult::fromArray($item),
-                array_values((array) $data['receptors']),
+                array_values(Wire::array($data, 'receptors')),
             ),
-            message: (string) $data['message'],
-            sendTime: isset($data['send_time']) ? new \DateTimeImmutable((string) $data['send_time']) : null,
-            totalCount: (int) $data['total_count'],
-            totalCost: (float) $data['total_cost'],
+            message: Wire::string($data, 'message'),
+            sendTime: Wire::nullableDate($data, 'send_time'),
+            totalCount: Wire::int($data, 'total_count'),
+            totalCost: Wire::float($data, 'total_cost'),
             counts: $counts,
-            profile: (string) $data['profile'],
-            messenger: (string) $data['messenger'],
+            profile: Wire::string($data, 'profile'),
+            messenger: Wire::string($data, 'messenger'),
         );
     }
 

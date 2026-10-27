@@ -6,6 +6,7 @@ namespace Adsefid\Sdk\Models\Messenger;
 
 use Adsefid\Sdk\Enums\WebServiceMessageStatus;
 use Adsefid\Sdk\Support\WebServiceCode;
+use Adsefid\Sdk\Support\Wire;
 
 /**
  * `statusCode` is the raw status; `status` is its typed view and is `null`
@@ -35,17 +36,17 @@ final class SendSingleMessengerResponse
     public static function fromArray(array $data): self
     {
         return new self(
-            groupId: (string) $data['group_id'],
-            messageId: (string) $data['message_id'],
-            statusCode: (int) $data['status'],
-            status: WebServiceCode::messageStatus((int) $data['status']),
-            receptor: (string) $data['receptor'],
-            localId: isset($data['local_id']) ? (string) $data['local_id'] : null,
-            hide: (bool) $data['hide'],
-            cost: (float) $data['cost'],
-            sendTime: isset($data['send_time']) ? new \DateTimeImmutable((string) $data['send_time']) : null,
-            profile: (string) $data['profile'],
-            messenger: (string) $data['messenger'],
+            groupId: Wire::string($data, 'group_id'),
+            messageId: Wire::string($data, 'message_id'),
+            statusCode: Wire::int($data, 'status'),
+            status: WebServiceCode::messageStatus(Wire::int($data, 'status')),
+            receptor: Wire::string($data, 'receptor'),
+            localId: isset($data['local_id']) ? Wire::string($data, 'local_id') : null,
+            hide: Wire::bool($data, 'hide'),
+            cost: Wire::float($data, 'cost'),
+            sendTime: Wire::nullableDate($data, 'send_time'),
+            profile: Wire::string($data, 'profile'),
+            messenger: Wire::string($data, 'messenger'),
         );
     }
 

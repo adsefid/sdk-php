@@ -6,7 +6,7 @@ namespace Adsefid\Sdk\Models\User;
 
 use Adsefid\Sdk\Enums\TemplateState;
 use Adsefid\Sdk\Exceptions\AdsefidValidationException;
-use Adsefid\Sdk\Support\LocalIdValidator;
+use Adsefid\Sdk\Support\Validator;
 
 final class GetUserTemplatesRequest
 {
@@ -26,7 +26,7 @@ final class GetUserTemplatesRequest
             throw new AdsefidValidationException('"skip" must be non-negative.', 'skip');
         }
 
-        LocalIdValidator::intRange($this->take, self::MIN_TAKE, self::MAX_TAKE, 'take');
+        Validator::intRange($this->take, self::MIN_TAKE, self::MAX_TAKE, 'take');
     }
 
     /**

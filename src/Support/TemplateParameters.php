@@ -15,6 +15,8 @@ use Adsefid\Sdk\Exceptions\AdsefidValidationException;
  * digits: `'001234'` keeps its leading zeros and `'1.50'` its trailing zero,
  * where the numbers `1234` and `1.5` would not.
  *
+ * @internal
+ *
  * @phpstan-type TemplateParameterValue string|int|float
  * @phpstan-type TemplateParameterMap array<string, string|int|float>
  */

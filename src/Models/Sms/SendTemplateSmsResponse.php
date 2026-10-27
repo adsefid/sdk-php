@@ -7,6 +7,7 @@ namespace Adsefid\Sdk\Models\Sms;
 use Adsefid\Sdk\Enums\LineSelector;
 use Adsefid\Sdk\Enums\WebServiceMessageStatus;
 use Adsefid\Sdk\Support\WebServiceCode;
+use Adsefid\Sdk\Support\Wire;
 
 /**
  * `statusCode` is the raw status; `status` is its typed view and is `null`
@@ -28,7 +29,7 @@ final class SendTemplateSmsResponse
         public readonly string $templateId,
         public readonly ?\DateTimeImmutable $sendTime,
         public readonly ?\DateTimeImmutable $expiryDate,
-        public readonly ?LineSelector $lineSelector,
+        public readonly LineSelector|int|null $lineSelector,
         public readonly float $cost,
         public readonly string $receptor,
         public readonly string $message,
@@ -43,20 +44,20 @@ final class SendTemplateSmsResponse
     public static function fromArray(array $data): self
     {
         return new self(
-            groupId: (string) $data['group_id'],
-            messageId: (string) $data['message_id'],
-            statusCode: (int) $data['status'],
-            status: WebServiceCode::messageStatus((int) $data['status']),
-            localId: isset($data['local_id']) ? (string) $data['local_id'] : null,
-            lineNumber: (string) $data['line_number'],
-            templateId: (string) $data['template_id'],
-            sendTime: isset($data['send_time']) ? new \DateTimeImmutable((string) $data['send_time']) : null,
-            expiryDate: isset($data['expiry_date']) ? new \DateTimeImmutable((string) $data['expiry_date']) : null,
-            lineSelector: isset($data['line_selector']) ? LineSelector::from((int) $data['line_selector']) : null,
-            cost: (float) $data['cost'],
-            receptor: (string) $data['receptor'],
-            message: (string) $data['message'],
-            segmentCount: (int) $data['segment_count'],
+            groupId: Wire::string($data, 'group_id'),
+            messageId: Wire::string($data, 'message_id'),
+            statusCode: Wire::int($data, 'status'),
+            status: WebServiceCode::messageStatus(Wire::int($data, 'status')),
+            localId: isset($data['local_id']) ? Wire::string($data, 'local_id') : null,
+            lineNumber: Wire::string($data, 'line_number'),
+            templateId: Wire::string($data, 'template_id'),
+            sendTime: Wire::nullableDate($data, 'send_time'),
+            expiryDate: Wire::nullableDate($data, 'expiry_date'),
+            lineSelector: Wire::lineSelector($data, 'line_selector'),
+            cost: Wire::float($data, 'cost'),
+            receptor: Wire::string($data, 'receptor'),
+            message: Wire::string($data, 'message'),
+            segmentCount: Wire::int($data, 'segment_count'),
             parameters: (array) ($data['parameters'] ?? []),
         );
     }
@@ -75,7 +76,7 @@ final class SendTemplateSmsResponse
             'template_id' => $this->templateId,
             'send_time' => $this->sendTime?->format(DATE_ATOM),
             'expiry_date' => $this->expiryDate?->format(DATE_ATOM),
-            'line_selector' => $this->lineSelector?->value,
+            'line_selector' => Wire::value($this->lineSelector),
             'cost' => $this->cost,
             'receptor' => $this->receptor,
             'message' => $this->message,

@@ -11,7 +11,7 @@
  * them is non-null.
  *
  * Usage:
- *     ADSEFID_API_KEY=... ADSEFID_LINE_NUMBER=983000XXX php examples/bulk-and-p2p.php
+ *     ADSEFID_API_KEY=... ADSEFID_LINE_NUMBER=983000 ADSEFID_LINE_SELECTOR=BulkServiceSendBased php examples/bulk-and-p2p.php
  */
 
 declare(strict_types=1);
@@ -19,6 +19,7 @@ declare(strict_types=1);
 require __DIR__ . '/../vendor/autoload.php';
 
 use Adsefid\Sdk\AdsefidClient;
+use Adsefid\Sdk\Enums\LineSelector;
 use Adsefid\Sdk\ClientConfig;
 use Adsefid\Sdk\Exceptions\AdsefidException;
 use Adsefid\Sdk\Models\Sms\BulkSmsReceptor;
@@ -32,6 +33,8 @@ use GuzzleHttp\Client as GuzzleClient;
 
 $apiKey = getenv('ADSEFID_API_KEY');
 $lineNumber = getenv('ADSEFID_LINE_NUMBER');
+// Needed when the number has several lines; the value is a LineSelector case name.
+$lineSelector = getenv('ADSEFID_LINE_SELECTOR') !== false ? constant(LineSelector::class . '::' . getenv('ADSEFID_LINE_SELECTOR')) : null;
 if ($apiKey === false || $lineNumber === false) {
     fwrite(STDERR, "set ADSEFID_API_KEY and ADSEFID_LINE_NUMBER\n");
     exit(1);
@@ -69,6 +72,7 @@ try {
         ],
         message: 'Scheduled maintenance tonight from 01:00 to 03:00.',
         lineNumber: $lineNumber,
+        lineSelector: $lineSelector,
     ));
 
     printf("\nbulk group %s: %d receptors, cost %s\n", $bulk->groupId, $bulk->totalCount, $bulk->totalCost);
@@ -84,6 +88,7 @@ try {
             new P2PSmsMessage('09120000001', 'Hi Reza, your order #1002 shipped.', localId: 'ship-1002'),
         ],
         lineNumber: $lineNumber,
+        lineSelector: $lineSelector,
     ));
 
     printf("\np2p group %s: cost %s\n", $p2p->groupId, $p2p->totalCost);

@@ -6,7 +6,7 @@ namespace Adsefid\Sdk\Models\Sms;
 
 use Adsefid\Sdk\Enums\LineSelector;
 use Adsefid\Sdk\Exceptions\AdsefidValidationException;
-use Adsefid\Sdk\Support\LocalIdValidator;
+use Adsefid\Sdk\Support\Validator;
 
 final class SendSingleSmsRequest
 {
@@ -24,11 +24,11 @@ final class SendSingleSmsRequest
         public readonly ?string $localId = null,
         public readonly bool $hide = false,
     ) {
-        LocalIdValidator::requireNonEmpty($this->receptor, 'receptor');
-        LocalIdValidator::requireNonEmpty($this->lineNumber, 'line_number');
-        LocalIdValidator::requireNonEmpty($this->message, 'message');
-        LocalIdValidator::maxLength($this->message, self::MESSAGE_MAX_LENGTH, 'message');
-        LocalIdValidator::validate($this->localId, 'local_id');
+        Validator::requireNonEmpty($this->receptor, 'receptor');
+        Validator::requireNonEmpty($this->lineNumber, 'line_number');
+        Validator::requireNonEmpty($this->message, 'message');
+        Validator::maxLength($this->message, self::MESSAGE_MAX_LENGTH, 'message');
+        Validator::validate($this->localId, 'local_id');
     }
 
     /**

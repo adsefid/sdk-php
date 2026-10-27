@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Adsefid\Sdk\Models\Messenger;
 
 use Adsefid\Sdk\Exceptions\AdsefidValidationException;
-use Adsefid\Sdk\Support\LocalIdValidator;
+use Adsefid\Sdk\Support\Validator;
 
 final class UploadMessengerFileRequest
 {
@@ -20,8 +20,8 @@ final class UploadMessengerFileRequest
         public readonly string $filename,
         public readonly string $contentType,
     ) {
-        LocalIdValidator::requireNonEmpty($this->filename, 'filename');
-        LocalIdValidator::requireNonEmpty($this->contentType, 'content_type');
+        Validator::requireNonEmpty($this->filename, 'filename');
+        Validator::requireNonEmpty($this->contentType, 'content_type');
 
         if (!is_resource($this->stream)) {
             throw new AdsefidValidationException('UploadMessengerFileRequest::$stream must be a PHP stream resource.', 'stream');

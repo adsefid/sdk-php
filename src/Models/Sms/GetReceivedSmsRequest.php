@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Adsefid\Sdk\Models\Sms;
 
 use Adsefid\Sdk\Exceptions\AdsefidValidationException;
-use Adsefid\Sdk\Support\LocalIdValidator;
+use Adsefid\Sdk\Support\Validator;
 
 final class GetReceivedSmsRequest
 {
@@ -20,10 +20,10 @@ final class GetReceivedSmsRequest
         public readonly ?int $count = null,
         public readonly ?\DateTimeImmutable $since = null,
     ) {
-        LocalIdValidator::requireNonEmpty($this->lineNumber, 'line_number');
+        Validator::requireNonEmpty($this->lineNumber, 'line_number');
 
         if ($this->count !== null) {
-            LocalIdValidator::intRange($this->count, self::MIN_COUNT, self::MAX_COUNT, 'count');
+            Validator::intRange($this->count, self::MIN_COUNT, self::MAX_COUNT, 'count');
         }
     }
 

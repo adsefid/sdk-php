@@ -5,6 +5,7 @@ declare(strict_types=1);
 require __DIR__ . '/../vendor/autoload.php';
 
 use Adsefid\Sdk\AdsefidClient;
+use Adsefid\Sdk\Enums\LineSelector;
 use Adsefid\Sdk\ClientConfig;
 use Adsefid\Sdk\Exceptions\AdsefidApiException;
 use Adsefid\Sdk\Exceptions\AdsefidRateLimitException;
@@ -26,8 +27,10 @@ $client = new AdsefidClient(
 
 try {
     $response = $client->sms->sendSingle(new SendSingleSmsRequest(
-        receptor: '09120000000',
-        lineNumber: '3000505',
+        receptor: '989120000000',
+        lineNumber: '983000',
+        // Required when your account has several lines with this number; see $client->user->getLines().
+        lineSelector: LineSelector::BulkServiceSendBased,
         message: 'Hello from the Adsefid PHP SDK quickstart example.',
     ));
 

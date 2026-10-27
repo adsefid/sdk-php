@@ -6,6 +6,7 @@ namespace Adsefid\Sdk\Tests;
 
 use Adsefid\Sdk\Enums\TemplateParameterType;
 use Adsefid\Sdk\Enums\TemplateState;
+use Adsefid\Sdk\Exceptions\AdsefidTransportException;
 use Adsefid\Sdk\Exceptions\AdsefidValidationException;
 use Adsefid\Sdk\Models\User\GetUserTemplatesRequest;
 use Adsefid\Sdk\Tests\Support\TestClient;
@@ -70,19 +71,51 @@ final class UserResourceTest extends TestCase
     }
 
     /**
-     * The live service emits a parameter type this SDK does not model.
-     * Dropping the entry keeps the typed map honest rather than surfacing a
-     * value callers cannot match on.
+     * A parameter type with no enum case It stays a
+     * plain string so callers can see which parameters a template needs.
      */
-    public function testGetTemplatesDropsUndocumentedParameterTypes(): void
+    public function testGetTemplatesPreservesUnknownParameterTypes(): void
     {
         [$client] = TestClient::respondingWithFixture('envelopes/user.get_templates.unknown_type.json');
 
         $result = $client->user->getTemplates(new GetUserTemplatesRequest());
 
         $parameters = $result->items[0]->parameters;
-        self::assertArrayNotHasKey('link', $parameters);
-        self::assertSame(['OTPCode', 'amount'], array_keys($parameters));
+        self::assertSame('future_type', $parameters['link']);
+        self::assertSame(['OTPCode', 'link', 'amount'], array_keys($parameters));
+    }
+
+    public function testAnUnknownLineSelectorAndTemplateStateArePreserved(): void
+    {
+        [$client] = TestClient::respondingWith('{"status":"success","data":[{"line_number":"1","line_selector":9,"line_name":"x","enabled":true}]}');
+        self::assertSame(9, $client->user->getLines()[0]->lineSelector);
+
+        [$client] = TestClient::respondingWith(
+            '{"status":"success","data":{"items":[{"template_id":"t","content":"c","parameters":{},"state":"archived","description":null,'
+            . '"created_at":"2026-09-02T10:30:00+03:30","updated_at":"2026-09-02T11:00:00+03:30"}],"total":1}}',
+        );
+        self::assertSame('archived', $client->user->getTemplates(new GetUserTemplatesRequest())->items[0]->state);
+    }
+
+    public function testAMissingFieldIsATransportExceptionNotAPhpWarning(): void
+    {
+        [$client] = TestClient::respondingWith('{"status":"success","data":{"name":"n"}}');
+
+        $this->expectException(AdsefidTransportException::class);
+        $client->user->getInfo();
+    }
+
+    public function testNullableAccountFieldsMayBeNull(): void
+    {
+        [$client] = TestClient::respondingWith(
+            '{"status":"success","data":{"name":"n","company_name":null,"credit_left":10,"email":null,"phone":null,"account_status":"active"}}',
+        );
+
+        $info = $client->user->getInfo();
+
+        self::assertNull($info->companyName);
+        self::assertNull($info->email);
+        self::assertNull($info->phone);
     }
 
     /**

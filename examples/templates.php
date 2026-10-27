@@ -10,7 +10,7 @@
  * 1234 and 1.5 would not.
  *
  * Usage:
- *     ADSEFID_API_KEY=... ADSEFID_LINE_NUMBER=983000XXX php examples/templates.php
+ *     ADSEFID_API_KEY=... ADSEFID_LINE_NUMBER=983000 ADSEFID_LINE_SELECTOR=BulkServiceSendBased php examples/templates.php
  */
 
 declare(strict_types=1);
@@ -18,6 +18,7 @@ declare(strict_types=1);
 require __DIR__ . '/../vendor/autoload.php';
 
 use Adsefid\Sdk\AdsefidClient;
+use Adsefid\Sdk\Enums\LineSelector;
 use Adsefid\Sdk\ClientConfig;
 use Adsefid\Sdk\Enums\TemplateParameterType;
 use Adsefid\Sdk\Enums\TemplateState;
@@ -28,6 +29,8 @@ use GuzzleHttp\Client as GuzzleClient;
 
 $apiKey = getenv('ADSEFID_API_KEY');
 $lineNumber = getenv('ADSEFID_LINE_NUMBER');
+// Needed when the number has several lines; the value is a LineSelector case name.
+$lineSelector = getenv('ADSEFID_LINE_SELECTOR') !== false ? constant(LineSelector::class . '::' . getenv('ADSEFID_LINE_SELECTOR')) : null;
 if ($apiKey === false || $lineNumber === false) {
     fwrite(STDERR, "set ADSEFID_API_KEY and ADSEFID_LINE_NUMBER\n");
     exit(1);
@@ -65,6 +68,7 @@ try {
         parameters: $parameters,
         receptor: '09120000000',
         lineNumber: $lineNumber,
+        lineSelector: $lineSelector,
         expiryDate: new DateTimeImmutable('+10 minutes'),
     ));
 

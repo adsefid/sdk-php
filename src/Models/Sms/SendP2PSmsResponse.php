@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Adsefid\Sdk\Models\Sms;
 
 use Adsefid\Sdk\Enums\LineSelector;
+use Adsefid\Sdk\Support\Wire;
 
 final class SendP2PSmsResponse
 {
@@ -17,7 +18,7 @@ final class SendP2PSmsResponse
         public readonly array $messages,
         public readonly ?\DateTimeImmutable $sendTime,
         public readonly string $lineNumber,
-        public readonly ?LineSelector $lineSelector,
+        public readonly LineSelector|int|null $lineSelector,
         public readonly float $totalCost,
         public readonly array $counts,
     ) {
@@ -35,15 +36,15 @@ final class SendP2PSmsResponse
         }
 
         return new self(
-            groupId: (string) $data['group_id'],
+            groupId: Wire::string($data, 'group_id'),
             messages: array_map(
                 static fn (array $item): P2PSmsMessageResult => P2PSmsMessageResult::fromArray($item),
-                array_values((array) $data['messages']),
+                array_values(Wire::array($data, 'messages')),
             ),
-            sendTime: isset($data['send_time']) ? new \DateTimeImmutable((string) $data['send_time']) : null,
-            lineNumber: (string) $data['line_number'],
-            lineSelector: isset($data['line_selector']) ? LineSelector::from((int) $data['line_selector']) : null,
-            totalCost: (float) $data['total_cost'],
+            sendTime: Wire::nullableDate($data, 'send_time'),
+            lineNumber: Wire::string($data, 'line_number'),
+            lineSelector: Wire::lineSelector($data, 'line_selector'),
+            totalCost: Wire::float($data, 'total_cost'),
             counts: $counts,
         );
     }
@@ -64,7 +65,7 @@ final class SendP2PSmsResponse
             'messages' => array_map(static fn (P2PSmsMessageResult $item): array => $item->toArray(), $this->messages),
             'send_time' => $this->sendTime?->format(DATE_ATOM),
             'line_number' => $this->lineNumber,
-            'line_selector' => $this->lineSelector?->value,
+            'line_selector' => Wire::value($this->lineSelector),
             'total_cost' => $this->totalCost,
             'counts' => $counts,
         ];

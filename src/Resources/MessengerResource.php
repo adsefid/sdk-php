@@ -37,17 +37,17 @@ final class MessengerResource
 
     public function sendSingle(SendSingleMessengerRequest $request): SendSingleMessengerResponse
     {
-        return SendSingleMessengerResponse::fromArray($this->transport->post('/v1/messenger/single', $request->toArray()));
+        return $this->transport->map(SendSingleMessengerResponse::fromArray(...), $this->transport->post('/v1/messenger/single', $request->toArray()));
     }
 
     public function sendBulk(SendBulkMessengerRequest $request): SendBulkMessengerResponse
     {
-        return SendBulkMessengerResponse::fromArray($this->transport->post('/v1/messenger/bulk', $request->toArray()));
+        return $this->transport->map(SendBulkMessengerResponse::fromArray(...), $this->transport->post('/v1/messenger/bulk', $request->toArray()));
     }
 
     public function sendP2P(SendP2PMessengerRequest $request): SendP2PMessengerResponse
     {
-        return SendP2PMessengerResponse::fromArray($this->transport->post('/v1/messenger/p2p', $request->toArray()));
+        return $this->transport->map(SendP2PMessengerResponse::fromArray(...), $this->transport->post('/v1/messenger/p2p', $request->toArray()));
     }
 
     public function uploadFile(UploadMessengerFileRequest $request): UploadMessengerFileResponse
@@ -56,23 +56,24 @@ final class MessengerResource
 
         $body = $builder->buildSingleFile('file', $request->filename, $request->contentType, $request->stream);
 
-        return UploadMessengerFileResponse::fromArray(
+        return $this->transport->map(
+            UploadMessengerFileResponse::fromArray(...),
             $this->transport->postMultipart('/v1/messenger/file', $body, $builder->getContentType()),
         );
     }
 
     public function cancel(CancelMessengerRequest $request): CancelMessengerResponse
     {
-        return CancelMessengerResponse::fromArray($this->transport->post('/v1/messenger/cancel', $request->toArray()));
+        return $this->transport->map(CancelMessengerResponse::fromArray(...), $this->transport->post('/v1/messenger/cancel', $request->toArray()));
     }
 
     public function sendTemplate(SendTemplateMessengerRequest $request): SendTemplateMessengerResponse
     {
-        return SendTemplateMessengerResponse::fromArray($this->transport->post('/v1/messenger/template', $request->toArray()));
+        return $this->transport->map(SendTemplateMessengerResponse::fromArray(...), $this->transport->post('/v1/messenger/template', $request->toArray()));
     }
 
     public function getStatus(GetMessengerStatusRequest $request): GetMessengerStatusResponse
     {
-        return GetMessengerStatusResponse::fromArray($this->transport->get('/v1/messenger/status', $request->toQuery()));
+        return $this->transport->map(GetMessengerStatusResponse::fromArray(...), $this->transport->get('/v1/messenger/status', $request->toQuery()));
     }
 }
