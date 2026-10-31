@@ -170,18 +170,17 @@ final class SmsResourceTest extends TestCase
         self::assertSame(19.99, $parameters['rate']);
     }
 
-    public function testGetStatusJoinsIdsIntoCsvQueryParams(): void
+    public function testGetStatusSendsAQueryJsonBody(): void
     {
         [$client, $http] = TestClient::respondingWithFixture('envelopes/sms.get_status.success.json');
 
         $client->sms->getStatus(new GetSmsStatusRequest(messageIds: ['m1', 'm2'], localIds: ['l1']));
 
         $request = $http->only();
-        self::assertSame('GET', $request->getMethod());
+        self::assertSame('QUERY', $request->getMethod());
         self::assertSame('/v1/sms/status', $request->getUri()->getPath());
-        parse_str($request->getUri()->getQuery(), $query);
-        self::assertSame('m1,m2', $query['message_ids']);
-        self::assertSame('l1', $query['local_ids']);
+        self::assertSame('', $request->getUri()->getQuery());
+        self::assertSame(['message_ids' => ['m1', 'm2'], 'local_ids' => ['l1']], json_decode((string) $request->getBody(), true));
     }
 
     public function testGetStatusOmitsAnEmptyIdList(): void
@@ -190,8 +189,7 @@ final class SmsResourceTest extends TestCase
 
         $client->sms->getStatus(new GetSmsStatusRequest(messageIds: ['m1']));
 
-        parse_str($http->only()->getUri()->getQuery(), $query);
-        self::assertSame(['message_ids' => 'm1'], $query);
+        self::assertSame(['message_ids' => ['m1']], json_decode((string) $http->only()->getBody(), true));
     }
 
     public function testCancel(): void
@@ -285,12 +283,13 @@ final class SmsResourceTest extends TestCase
     public static function statusLookupSizeProvider(): iterable
     {
         yield 'fits the 8000 character budget' => [210, true];
-        yield 'over the budget' => [230, false];
-        yield 'documented maximum' => [2000, false];
+        yield 'over the old URL budget' => [230, true];
+        yield 'documented maximum' => [2000, true];
+        yield 'over the maximum' => [2001, false];
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('statusLookupSizeProvider')]
-    public function testAStatusLookupThatCannotFitInAUrlIsRefusedLocally(int $count, bool $accepted): void
+    public function testAStatusLookupUsesAQueryBodyWithinTheIdLimit(int $count, bool $accepted): void
     {
         [$client, $http] = TestClient::respondingWith('{"status":"success","data":{"receptors":[]}}');
         $ids = [];
@@ -300,9 +299,9 @@ final class SmsResourceTest extends TestCase
 
         if ($accepted) {
             $client->sms->getStatus(new GetSmsStatusRequest(messageIds: $ids));
-            $query = $http->only()->getUri()->getQuery();
-            self::assertStringNotContainsString('%2C', $query);
-            self::assertStringContainsString(',', $query);
+            self::assertSame('QUERY', $http->only()->getMethod());
+            self::assertSame('', $http->only()->getUri()->getQuery());
+            self::assertSame(['message_ids' => $ids], json_decode((string) $http->only()->getBody(), true));
 
             return;
         }
@@ -311,7 +310,7 @@ final class SmsResourceTest extends TestCase
             $client->sms->getStatus(new GetSmsStatusRequest(messageIds: $ids));
             self::fail('Expected a validation exception.');
         } catch (AdsefidValidationException $e) {
-            self::assertStringContainsString('characters long', $e->getMessage());
+            self::assertStringContainsString('2000', $e->getMessage());
             self::assertSame(0, $http->count());
         }
     }
@@ -329,6 +328,7 @@ final class SmsResourceTest extends TestCase
 
         $client->sms->getStatus(new GetSmsStatusRequest(localIds: ['a', 'b', 'a']));
 
-        self::assertSame('https://api.test/webservice/api/v1/sms/status?local_ids=a,b', (string) $http->only()->getUri());
+        self::assertSame('https://api.test/webservice/api/v1/sms/status', (string) $http->only()->getUri());
+        self::assertSame(['local_ids' => ['a', 'b']], json_decode((string) $http->only()->getBody(), true));
     }
 }

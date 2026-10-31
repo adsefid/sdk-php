@@ -94,9 +94,9 @@ final class MessengerResourceTest extends TestCase
 
         $client->messenger->getStatus(new GetMessengerStatusRequest(messageIds: ['m1'], localIds: ['l1']));
 
-        parse_str($http->only()->getUri()->getQuery(), $query);
-        self::assertSame('m1', $query['message_ids']);
-        self::assertSame('l1', $query['local_ids']);
+        self::assertSame('QUERY', $http->only()->getMethod());
+        self::assertSame('', $http->only()->getUri()->getQuery());
+        self::assertSame(['message_ids' => ['m1'], 'local_ids' => ['l1']], json_decode((string) $http->only()->getBody(), true));
     }
 
     public function testUploadFilePostsMultipart(): void

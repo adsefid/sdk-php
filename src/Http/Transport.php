@@ -119,12 +119,12 @@ final class Transport
      *
      * @return array<array-key, mixed>
      */
-    public function post(string $path, array $body): array
+    public function post(string $path, array $body, string $method = 'POST'): array
     {
         $json = json_encode($body, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
         $request = $this->requestFactory
-            ->createRequest('POST', $this->buildUrl($path))
+            ->createRequest($method, $this->buildUrl($path))
             ->withHeader('X-API-KEY', $this->apiKey)
             ->withHeader('User-Agent', $this->userAgent)
             ->withHeader('Content-Type', 'application/json')

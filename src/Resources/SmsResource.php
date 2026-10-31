@@ -56,7 +56,7 @@ final class SmsResource
 
     public function getStatus(GetSmsStatusRequest $request): GetSmsStatusResponse
     {
-        return $this->transport->map(GetSmsStatusResponse::fromArray(...), $this->transport->get('/v1/sms/status', $request->toQuery()));
+        return $this->transport->map(GetSmsStatusResponse::fromArray(...), $this->transport->post('/v1/sms/status', $request->toArray(), 'QUERY'));
     }
 
     public function cancel(CancelSmsRequest $request): CancelSmsResponse

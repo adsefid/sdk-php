@@ -65,4 +65,21 @@ final class CancellationTest extends TestCase
             self::assertSame(0, $http->count());
         }
     }
+    public function testCancellationPreservesNullableIdsAndItemErrors(): void
+    {
+        foreach (['sms', 'messenger'] as $area) {
+            [$client, $http] = TestClient::respondingWithFixture('envelopes/cancel.partial_success.json');
+            $result = $area === 'sms'
+                ? $client->sms->cancel(new CancelSmsRequest(localIds: ['missing-local']))
+                : $client->messenger->cancel(new CancelMessengerRequest(localIds: ['missing-local']));
+            self::assertSame(\Adsefid\Sdk\Enums\WebServiceMessageStatus::Canceled, $result->cancelledMessages[0]->status);
+            self::assertSame([1001, 2046, 2029, 2999], array_map(static fn ($item) => $item->statusCode, $result->failedToCancel));
+            self::assertNull($result->failedToCancel[1]->localId);
+            self::assertNull($result->failedToCancel[2]->messageId);
+            self::assertSame(\Adsefid\Sdk\Enums\WebServiceResponseCode::InvalidMessageIds, $result->failedToCancel[1]->errorCode);
+            self::assertSame(\Adsefid\Sdk\Enums\WebServiceResponseCode::InvalidLocalIds, $result->failedToCancel[2]->errorCode);
+            self::assertNull($result->failedToCancel[3]->errorCode);
+            self::assertSame(1, $http->count());
+        }
+    }
 }
