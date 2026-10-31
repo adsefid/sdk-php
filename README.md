@@ -284,6 +284,6 @@ To work on the SDK: `make deps`, then `make lint`, `make build` and `make test`.
 
 ## Versioning and license
 
-Semantic Versioning, independent of the API documentation. SDK version **1.0.0**, set by git
+Semantic Versioning, independent of the API documentation. SDK version **1.1.0**, set by git
 tags, verified against API documentation **v1.15.0**. See [CHANGELOG.md](CHANGELOG.md). MIT
 licensed, see [LICENSE](LICENSE).
