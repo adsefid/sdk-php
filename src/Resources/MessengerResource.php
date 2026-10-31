@@ -74,6 +74,6 @@ final class MessengerResource
 
     public function getStatus(GetMessengerStatusRequest $request): GetMessengerStatusResponse
     {
-        return $this->transport->map(GetMessengerStatusResponse::fromArray(...), $this->transport->get('/v1/messenger/status', $request->toQuery()));
+        return $this->transport->map(GetMessengerStatusResponse::fromArray(...), $this->transport->post('/v1/messenger/status', $request->toArray(), 'QUERY'));
     }
 }

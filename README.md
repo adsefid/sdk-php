@@ -8,7 +8,7 @@ Messenger messages (single, bulk, P2P and template), checks delivery status, can
 messages, reads inbound SMS, looks up account data, and verifies signed webhooks.
 
 It needs PHP 8.2 or later and any [PSR-18](https://www.php-fig.org/psr/psr-18/) HTTP client. It is
-verified against API documentation **v1.14.0**. Sibling SDKs exist for .NET, Go, JavaScript and
+verified against API documentation **v1.15.0**. Sibling SDKs exist for .NET, Go, JavaScript and
 Python with the same shape.
 
 ## Install
@@ -55,7 +55,7 @@ The SDK never reads environment variables. Pass the API key yourself. It goes ou
 
 **Line selector.** An account can own several lines with the same number, each with its own
 selector (see `$client->user->getLines()`). When it does, `lineSelector` is required on every SMS
-send; without it the service answers `LINE_NOT_FOUND`.
+send; without it the service answers `INVALID_LINE_SELECTOR`.
 
 ## Configuration
 
@@ -84,16 +84,18 @@ with `\uXXXX` escapes. Money fields (`cost`, `totalCost`, `creditLeft`) are `flo
 | Resource | Methods | Endpoint |
 |---|---|---|
 | `$client->sms` | `sendSingle`, `sendBulk`, `sendP2P`, `sendTemplate` | `POST /v1/sms/{single,bulk,p2p,template}` |
-| `$client->sms` | `getStatus`, `cancel`, `getReceived` | `GET /v1/sms/status`, `POST /v1/sms/cancel`, `GET /v1/sms/receive` |
+| `$client->sms` | `getStatus`, `cancel`, `getReceived` | `QUERY /v1/sms/status`, `POST /v1/sms/cancel`, `GET /v1/sms/receive` |
 | `$client->messenger` | `sendSingle`, `sendBulk`, `sendP2P`, `sendTemplate` | `POST /v1/messenger/{single,bulk,p2p,template}` |
 | `$client->messenger` | `uploadFile(UploadMessengerFileRequest)` | `POST /v1/messenger/file` |
-| `$client->messenger` | `getStatus`, `cancel` | `GET /v1/messenger/status`, `POST /v1/messenger/cancel` |
+| `$client->messenger` | `getStatus`, `cancel` | `QUERY /v1/messenger/status`, `POST /v1/messenger/cancel` |
 | `$client->user` | `getInfo`, `getLines`, `getProfiles`, `getTemplates` | `GET /v1/user/{info,lines,profiles,templates}` |
 
 Each method takes one request object from `Adsefid\Sdk\Models\{Sms,Messenger,User}` (except
 `getInfo`, `getLines` and `getProfiles`) and returns a typed response. Request objects validate
 their fields in the constructor. Cancel accepts messages that are awaiting approval, queued or
-scheduled, with no refund, and at most 2,000 distinct IDs across both lists. Status lookups are GET requests, so the URL caps them at about 200 IDs per call. The SDK raises a validation error past 8,000 URL characters instead of letting the gateway answer HTTP 414.
+scheduled, with no refund, and at most 2,000 distinct IDs across both lists. Status lookups use `QUERY` with JSON arrays, supporting up to 2,000 distinct IDs in one request.
+Unmatched cancellation IDs appear in `failed_to_cancel` with error codes 2046 or 2029; a missing
+local ID match has a null message ID. Check each item's status or error code.
 
 ## Bulk and P2P: partial success is not an error
 
@@ -283,5 +285,5 @@ To work on the SDK: `make deps`, then `make lint`, `make build` and `make test`.
 ## Versioning and license
 
 Semantic Versioning, independent of the API documentation. SDK version **1.0.0**, set by git
-tags, verified against API documentation **v1.14.0**. See [CHANGELOG.md](CHANGELOG.md). MIT
+tags, verified against API documentation **v1.15.0**. See [CHANGELOG.md](CHANGELOG.md). MIT
 licensed, see [LICENSE](LICENSE).

@@ -35,4 +35,10 @@ final class GetSmsStatusRequest
             'local_ids' => $this->localIds === [] ? null : array_values(array_unique($this->localIds)),
         ];
     }
+
+    /** @return array<string, list<string>> */
+    public function toArray(): array
+    {
+        return array_filter($this->toQuery(), static fn (?array $ids): bool => $ids !== null);
+    }
 }

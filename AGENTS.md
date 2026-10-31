@@ -6,17 +6,17 @@ This repository is the PHP client SDK for the adsefid.com SMS Web Service API (p
 
 ## Source of truth
 
-The API surface (endpoints, field names, types, validation rules, enums, example payloads, webhook behavior) is defined by the published adsefid.com SMS Web Service API documentation. This SDK is verified against doc version v1.14.0. Re-read the relevant section before changing any endpoint, request/response model, or enum. The SDK follows independent Semantic Versioning from repository tags; never copy the API-document version into a tag. Record both versions in the README.
+The API surface (endpoints, field names, types, validation rules, enums, example payloads, webhook behavior) is defined by the published adsefid.com SMS Web Service API documentation. This SDK is verified against doc version v1.15.0. Re-read the relevant section before changing any endpoint, request/response model, or enum. The SDK follows independent Semantic Versioning from repository tags; never copy the API-document version into a tag. Record both versions in the README.
 
 A small number of facts below are empirically observed behaviors of the live API that are easy to get wrong from a literal reading of the documentation's prose or pseudo-code. Trust these notes over an ambiguous doc reading:
 
-- The response envelope's `error.details` uses the shared typed `ApiErrorDetails` shape: optional `errors` maps field names (or rejected cancel IDs) to `ApiFieldError`, and optional `items` carries indexed `ApiItemError` entries. Preserve unknown codes through `rawCode`.
+- The response envelope's `error.details` uses the shared typed `ApiErrorDetails` shape: optional `errors` maps field names to `ApiFieldError`, and optional `items` carries indexed `ApiItemError` entries. Preserve unknown codes through `rawCode`.
 - `line_selector` is required when the account has two or more lines with the same number. Without
-  it the service answers `LINE_NOT_FOUND` (2002), even for a number the account owns.
-- GET requests are capped at 8,000 characters of path and query. The service's proxy answers an HTML
-  HTTP 414 above 8 KiB, so the documented 2,000-ID status lookup cannot be sent as one GET (about 200
-  IDs fit). The SDK joins IDs with literal commas, drops duplicates, and refuses an oversized GET
-  locally with its validation error. Cancel is a POST and is not affected.
+  it the service answers `INVALID_LINE_SELECTOR` (2017) on `line_selector`. A selector that matches
+  no line returns `LINE_NOT_FOUND` (2002).
+- Status lookups use `QUERY` with JSON arrays, with at most 2,000 distinct message/local IDs
+  combined. Unmatched cancellation IDs stay in `failed_to_cancel` with status 2046 or 2029;
+  a missing local ID match has a null message ID. Preserve unknown per-item codes.
 - Timestamps carry up to 7 fractional digits (`2026-09-19T11:43:10.4030292+03:30`) and mixed offsets;
   parsers must accept both.
 - Bulk/P2P item validation happens in the API. Validate request-level fields locally, but send item values unchanged so valid siblings can still succeed.
@@ -72,6 +72,8 @@ src/
 
 ## Hard rules
 
+- **All enums must preserve unknown wire values.** Keep raw integers/strings without raising
+  errors for unnamed values.
 - **Every change ships with tests.** `tests/` runs on PHPUnit (`make test`), namespaced
   `Adsefid\Sdk\Tests\` via `autoload-dev`. Prefer one `#[DataProvider]` table over many
   near-identical methods. Validation lives in the request DTO constructors, so a validation test

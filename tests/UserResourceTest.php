@@ -67,7 +67,7 @@ final class UserResourceTest extends TestCase
         self::assertSame(TemplateState::Approved, $item->state);
         self::assertSame(TemplateParameterType::String, $item->parameters['OTPCode']);
         self::assertSame(TemplateParameterType::Number, $item->parameters['amount']);
-        self::assertNull($item->description);
+        self::assertSame('', $item->description);
     }
 
     /**
@@ -83,6 +83,7 @@ final class UserResourceTest extends TestCase
         $parameters = $result->items[0]->parameters;
         self::assertSame('future_type', $parameters['link']);
         self::assertSame(['OTPCode', 'link', 'amount'], array_keys($parameters));
+        self::assertNull($result->items[0]->description);
     }
 
     public function testAnUnknownLineSelectorAndTemplateStateArePreserved(): void
